@@ -2,7 +2,15 @@ from MagicRWSample import Sample
 
 import pandas as pd
 
+from math import acos, pi
+
 m_proton = 0.93827208
+
+proton_track_pthr = 200
+pion_track_pthr = 130
+
+angularResolution = 2e-3*180/pi
+
 
 class Nominal(Sample) :
     
@@ -98,6 +106,43 @@ class Nominal(Sample) :
     def Etrue(self, event) :
         return event.nu_4mom[3]
 
+    def leptonAngle(self, event) :
+        return acos(event.PrimaryLep_4mom[3]/( sum ( [ PrimaryLep_4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
+
+    def leadingMom(self, event, pdgCode) :
+        maxMom = 0
+        max4Mom = [0, 0, 0, 0]
+        if pdgCode == 2212 :
+            maxMom = proton_track_pthr
+        elif pdgCode = 211 :
+            maxMom = pion_track_pthr
+
+        for i in range(0, event.NFSParts) :
+            if abs(event.(FSPart_PDG)) == pdgCode :
+                thisMom = sum( [ FSPart_4Mom[j]**2 for j in range(i*4, i*4+j) ] )**2
+                if thisMom > maxMom :
+                    maxMom = thisMom
+                    max4Mom = [ FSPart_4Mom[j]**2 for j in range(i*4, i*4+j) ]
+        return max4Mom
+            
+    def leadingProton4mom(self, event) :
+        return leadingMom(event, 2212)
+
+    def leadingPion4mom(self, event) :
+        return leadingMom(event, 211)
+
+    def protonAngle(self, event) :
+        proton4mom = leadingProton4mom(event)
+        if proton4mom[0] :
+            return acos(proton4mom[3] / ( sum( [ proton4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
+        else return 0
+
+    def pionAngle(self, event) :
+        pion4mom = leadingPion4mom(event)
+        if pion4mom[0] :
+            return acos(pion4mom[3] / ( sum( [ pion4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
+        else return 0
+
     def selection(self, event) :
         isSelected = True
 
@@ -121,7 +166,10 @@ class Nominal(Sample) :
                     "Elep_true"   : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',    "range" : [0., 5.] , "logScale" : False },
                     "Eproton_dep" : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',         "range" : [0., 2.] , "logScale" : True },
                     "EpiC_dep"    : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]', "range" : [0., 2.] , "logScale" : True },
-                    "Epi0_dep"    : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',   "range" : [0., 2.] , "logScale" : True } }
+                    "Epi0_dep"    : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',   "range" : [0., 2.] , "logScale" : True },
+                    "protonAngle" : { "label" : r'\theta${_{p}}^{\mathrm{beam}}$ [GeV]',   "range" : [-pi, pi] , "logScale" : False },
+                    "pionAngle"   : { "label" : r'\theta${_{\pi^{\pm}}}^{\mathrm{beam}}$ [GeV]',   "range" : [-pi, pi] , "logScale" : False }
+    }
                     
     
     # Pairs of true variables for binned reweighting
@@ -131,8 +179,8 @@ class Nominal(Sample) :
 
         variables = { "Erec" :           self.Erec(event),
                       "Elep_true" :      self.leptonEnergy(event),
-                      "Eproton_dep" :    self.protonEdep(event), 
-                      "EpiC_dep" :       self.piCEdep(event),
+                      "Eproton_dep" :    self.protonEdep(event) if leadingProton4mom[3] > 0 else 0, 
+                      "EpiC_dep" :       self.piCEdep(event) if leadingPion4mom[3] > 0 else 0,
                       "Epi0_dep" :       self.pi0Edep(event),
                       "Etrue" :          self.Etrue(event),
                       "q0" :             self.q0(event),
@@ -141,6 +189,9 @@ class Nominal(Sample) :
                       "Q2" :             self.Q2(event),
                       "GENIEIntMode" :   self.GENIEIntMode(event),
                       "EKproton_True" :  self.protonEKinTrue(event),
+                      "protonAngle" :    self.protonAngle(event),
+                      "pionAngle" :      self.pionAngle(event),
+                      BREAK!!!! coplanarity and transverse momentum? anything else? implement angular smearing!
         }
 
         return variables
