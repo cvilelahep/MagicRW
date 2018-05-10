@@ -136,13 +136,13 @@ class Sample(object) :
         with open(self.gbrwPath(), "wb") as f :
             pickle.dump(reweighter, f)
 
-    def plotDiagnostics(self, originSample) :
+    def plotDiagnostics(self, targetSample) :
         
         if not os.path.isdir(self.plotsDir()) :
             os.makedirs(self.plotsDir())
 
-        targetDFtrain, targetDFtest = self.getDataFrames()
-        originDFtrain, originDFtest = originSample.getDataFrames()
+        targetDFtrain, targetDFtest = targetSample.getDataFrames()
+        originDFtrain, originDFtest = self.getDataFrames()
 
         targetDFtrain = targetDFtrain[self.observables.keys()]
         originDFtrain = originDFtrain[self.observables.keys()]
