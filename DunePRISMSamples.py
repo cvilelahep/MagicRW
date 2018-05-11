@@ -210,7 +210,7 @@ class Nominal(Sample) :
         leptonPt = self.transverseVector(inp = lepton3Mom, planarNormal = nu3Mom)
 
         dphit = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))) # Minus sign here?
-        dpt = protonPt + leptonPt
+        dpt = np.linalg.norm(protonPt + leptonPt)
         dalphat = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), dpt/np.linalg.norm(dpt))) # Minus sign here?
         
         return dpt, dalphat, dphit
