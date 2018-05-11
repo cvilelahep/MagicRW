@@ -283,7 +283,9 @@ class Nominal(Sample) :
                       "dpt" :            dpt,
                       "dalphat" :        dalphat,
                       "dphit"    :       dphit,
-                      "dptt"    :        dptt
+                      "dptt"    :        dptt, 
+                      "nPionAboveTrackThr" : nPionAboveTHR,
+                      "nProtonAboveTrackThr" : nProtonAboveTHR
         }
 
         return variables
@@ -298,3 +300,20 @@ class ProtonEdepm20pc(Nominal) :
 
     def protonEdepVeto(self, event) :
         return 0.8*event.ProtonDep_veto
+
+class ProtonEdepm20pcA(Nominal) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcA_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def protonEdepFV(self, event) :
+        if event.EKinNeutron_True >=  0.2*event.EKinProton_True :
+            return 0.8*event.ProtonDep_FV
+        else :
+            return event.ProtonDep_FV
+
+    def protonEdepVeto(self, event) :
+        if event.EKinNeutron_True >=  0.2*event.EKinProton_True :
+            return 0.8*event.ProtonDep_veto
+        else :
+            return event.ProtonDep_veto
