@@ -2,6 +2,8 @@ from MagicRWSample import Sample
 
 import pandas as pd
 
+import numpy as np
+
 from math import acos, pi
 
 m_proton = 0.93827208
@@ -112,36 +114,44 @@ class Nominal(Sample) :
     def leadingMom(self, event, pdgCode) :
         maxMom = 0
         max4Mom = [0, 0, 0, 0]
+        nAboveThr = 0
         if pdgCode == 2212 :
-            maxMom = proton_track_pthr
-        elif pdgCode = 211 :
-            maxMom = pion_track_pthr
+            thisTHR = proton_track_pthr
+        elif pdgCode == 211 :
+            thisTHR = pion_track_pthr
+
+        maxMom = thisTHR
 
         for i in range(0, event.NFSParts) :
-            if abs(event.(FSPart_PDG)) == pdgCode :
-                thisMom = sum( [ FSPart_4Mom[j]**2 for j in range(i*4, i*4+j) ] )**2
+            if abs(event.FSPart_PDG[i]) == pdgCode :
+                thisMom = sum( [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+3) ] )**2
+                if thisMom > thisTHR :
+                    nAboveThr += 1
                 if thisMom > maxMom :
                     maxMom = thisMom
-                    max4Mom = [ FSPart_4Mom[j]**2 for j in range(i*4, i*4+j) ]
-        return max4Mom
+                    max4Mom = [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+3) ]
+
+        return max4Mom, nAboveThr
             
     def leadingProton4mom(self, event) :
-        return leadingMom(event, 2212)
+        return self.leadingMom(event, 2212)
 
     def leadingPion4mom(self, event) :
-        return leadingMom(event, 211)
+        return self.leadingMom(event, 211)
 
     def protonAngle(self, event) :
-        proton4mom = leadingProton4mom(event)
+        proton4mom = self.leadingProton4mom(event)
         if proton4mom[0] :
             return acos(proton4mom[3] / ( sum( [ proton4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
-        else return 0
+        else  :
+            return 0
 
     def pionAngle(self, event) :
-        pion4mom = leadingPion4mom(event)
+        pion4mom = self.leadingPion4mom(event)
         if pion4mom[0] :
             return acos(pion4mom[3] / ( sum( [ pion4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
-        else return 0
+        else :
+            return 0
 
     def selection(self, event) :
         isSelected = True
@@ -161,14 +171,74 @@ class Nominal(Sample) :
             
         return isSelected
 
+    def transverseVector(self, inp, planarNormal) :
+        pnUnit = planarNormal/np.linalg.norm(planarNormal)
+        inpProjectPN = np.dot(pnUnit, inp)
+
+        return inp - (inProjectPN * pnUnit)
+
+
+    def transformed3Mom(self, v4Mom, EKinRatio) :
+        mass = ( v4Mom[3] **2 - sum ( [ v4Mom[i]**2 for i in range(0, 3) ] ) )**0.5
+        EKinTransformed = ( v4Mom[3] - mass )*EKinRatio
+        pTransformed = ( (mass + EKinTransformed)**2 - mass**2)**0.5
+        pRatio = pTransformed / sum( [ v4Mom[i]**2 for i in range(0, 3) ] )**0.5
+
+        return [ v4Mom[i]*pRatio for i in range(0, 3) ]
+
+    def singleTransverseVariables(self, event, leadProton4Mom) :
+    
+        lepton4Mom = event.PrimaryLep_4mom
+        nu4Mom = event.nu_4mom
+        
+        # Smear angles
+        
+        # Apply momentum transformation to proton
+        EKinProtonRatio = self.protonEdepFV() / super(self.name).protonEdepFV() # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        leadProtonTransformed3Mom = np.array( self.transformed3Mom(leadProton4Mom, EKinProtonRatio) )
+        
+        lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
+        nu3Mom = np.array( [ nu4Mom[i] for i in range(0, 3) ] )
+
+        # Calculate STVs
+        protonPt = transverseVector(self, inp = leadProtonTransformed3Mom, planarNormal = nu3Mom)
+        leptonPt = transverseVector(self, inp = lepton3Mom, planarNormal = nu3Mom)
+
+        dphit = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))) # Minus sign here?
+        dpt = protonPt + leptonPt
+        dalphat = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), dpt/np.linalg.norm(dpt))) # Minus sign here?
+        
+        return dpt, dalphat, dphit
+
+    def doubleTransverseVariables(self, event, leadProton4Mom, leadPion4Mom) :
+
+        lepton4Mom = event.PrimaryLep_4mom
+        nu4Mom = event.nu_4mom
+        
+        EKinProtonRatio = self.protonEdepFV() / super(self.name).protonEdepFV() # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        leadProtonTransformed3Mom = np.array( self.transformed3Mom(leadProton4Mom, EKinProtonRatio) )
+        
+        EKinPionRatio = self.piCEdepFV() / super(self.name).piCEdepFV() # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        leadPionTransformed3Mom = np.array( self.transformed3Mom(leadPion4Mom, EKinPionRatio) )
+        
+        lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
+        nu3Mom = np.array( [ nu4Mom[i] for i in range(0, 3) ] )
+
+        ztt = np.cross(nu3Mom, lepton3Mom)
+        ztt = ztt/np.linalg.norm(ztt)
+        
+        dptt = np.dot( leadProtonTransformed3Mom + leadPionTransformed3Mom, ztt)
+
+        return dptt
+                                              
     # Variables to be used in training
     observables = { "Erec"        : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',               "range" : [0., 6.] , "logScale" : False },
                     "Elep_true"   : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',    "range" : [0., 5.] , "logScale" : False },
                     "Eproton_dep" : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',         "range" : [0., 2.] , "logScale" : True },
                     "EpiC_dep"    : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]', "range" : [0., 2.] , "logScale" : True },
-                    "Epi0_dep"    : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',   "range" : [0., 2.] , "logScale" : True },
-                    "protonAngle" : { "label" : r'\theta${_{p}}^{\mathrm{beam}}$ [GeV]',   "range" : [-pi, pi] , "logScale" : False },
-                    "pionAngle"   : { "label" : r'\theta${_{\pi^{\pm}}}^{\mathrm{beam}}$ [GeV]',   "range" : [-pi, pi] , "logScale" : False }
+                    "Epi0_dep"    : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',   "range" : [0., 2.] , "logScale" : True }
+#                    "protonAngle" : { "label" : r'\theta${_{p}}^{\mathrm{beam}}$ [GeV]',   "range" : [-pi, pi] , "logScale" : False },
+#                    "pionAngle"   : { "label" : r'\theta${_{\pi^{\pm}}}^{\mathrm{beam}}$ [GeV]',   "range" : [-pi, pi] , "logScale" : False }
     }
                     
     
@@ -177,10 +247,22 @@ class Nominal(Sample) :
     
     def variables(self, event) :
 
+        leadPion4Mom, nPionAboveTHR = self.leadingPion4mom(event)
+        leadProton4Mom, nProtonAboveTHR = self.leadingPion4mom(event)
+
+        dpt = 0
+        dalphat = 0
+        dphit = 0
+        dptt = 0
+        if event.IsCC and nPionAboveTHR == 0 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
+            dpt, dalphat, dphit = singleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom)
+        elif event.IsCC and nPionAboveTHR == 1 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
+            dptt = doubleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom, leadingPion4Mom = leadPion4Mom)
+
         variables = { "Erec" :           self.Erec(event),
                       "Elep_true" :      self.leptonEnergy(event),
-                      "Eproton_dep" :    self.protonEdep(event) if leadingProton4mom[3] > 0 else 0, 
-                      "EpiC_dep" :       self.piCEdep(event) if leadingPion4mom[3] > 0 else 0,
+                      "Eproton_dep" :    self.protonEdep(event) if leadProton4Mom[3] > 0 else 0, 
+                      "EpiC_dep" :       self.piCEdep(event) if leadPion4Mom[3] > 0 else 0,
                       "Epi0_dep" :       self.pi0Edep(event),
                       "Etrue" :          self.Etrue(event),
                       "q0" :             self.q0(event),
@@ -189,9 +271,10 @@ class Nominal(Sample) :
                       "Q2" :             self.Q2(event),
                       "GENIEIntMode" :   self.GENIEIntMode(event),
                       "EKproton_True" :  self.protonEKinTrue(event),
-                      "protonAngle" :    self.protonAngle(event),
-                      "pionAngle" :      self.pionAngle(event),
-                      BREAK!!!! coplanarity and transverse momentum? anything else? implement angular smearing!
+                      "dpt" :            dpt,
+                      "dalphat" :        dalphat,
+                      "dphit"    :       dphit,
+                      "dptt"    :        dptt
         }
 
         return variables
