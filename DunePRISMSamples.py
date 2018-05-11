@@ -8,8 +8,8 @@ from math import acos, pi
 
 m_proton = 0.93827208
 
-proton_track_pthr = 200
-pion_track_pthr = 130
+proton_track_pthr = 0.200
+pion_track_pthr = 0.130
 
 angularResolution = 2e-3*180/pi
 
@@ -111,7 +111,7 @@ class Nominal(Sample) :
     def leptonAngle(self, event) :
         return acos(event.PrimaryLep_4mom[3]/( sum ( [ PrimaryLep_4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
 
-    def leadingMom(self, event, pdgCode) :
+    def leading4Mom(self, event, pdgCode) :
         maxMom = 0
         max4Mom = [0, 0, 0, 0]
         nAboveThr = 0
@@ -124,20 +124,20 @@ class Nominal(Sample) :
 
         for i in range(0, event.NFSParts) :
             if abs(event.FSPart_PDG[i]) == pdgCode :
-                thisMom = sum( [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+3) ] )**2
+                thisMom = sum( [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+3) ] )**0.5
                 if thisMom > thisTHR :
                     nAboveThr += 1
-                if thisMom > maxMom :
-                    maxMom = thisMom
-                    max4Mom = [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+3) ]
+                    if thisMom > maxMom :
+                        maxMom = thisMom
+                        max4Mom = [ event.FSPart_4Mom[j] for j in range(i*4, i*4+4) ]
 
         return max4Mom, nAboveThr
             
     def leadingProton4mom(self, event) :
-        return self.leadingMom(event, 2212)
+        return self.leading4Mom(event, 2212)
 
     def leadingPion4mom(self, event) :
-        return self.leadingMom(event, 211)
+        return self.leading4Mom(event, 211)
 
     def protonAngle(self, event) :
         proton4mom = self.leadingProton4mom(event)
@@ -175,10 +175,11 @@ class Nominal(Sample) :
         pnUnit = planarNormal/np.linalg.norm(planarNormal)
         inpProjectPN = np.dot(pnUnit, inp)
 
-        return inp - (inProjectPN * pnUnit)
+        return inp - (inpProjectPN * pnUnit)
 
 
     def transformed3Mom(self, v4Mom, EKinRatio) :
+
         mass = ( v4Mom[3] **2 - sum ( [ v4Mom[i]**2 for i in range(0, 3) ] ) )**0.5
         EKinTransformed = ( v4Mom[3] - mass )*EKinRatio
         pTransformed = ( (mass + EKinTransformed)**2 - mass**2)**0.5
@@ -186,7 +187,7 @@ class Nominal(Sample) :
 
         return [ v4Mom[i]*pRatio for i in range(0, 3) ]
 
-    def singleTransverseVariables(self, event, leadProton4Mom) :
+    def singleTransverseKinematics(self, event, leadProton4Mom) :
     
         lepton4Mom = event.PrimaryLep_4mom
         nu4Mom = event.nu_4mom
@@ -194,15 +195,19 @@ class Nominal(Sample) :
         # Smear angles
         
         # Apply momentum transformation to proton
-        EKinProtonRatio = self.protonEdepFV() / super(self.name).protonEdepFV() # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        try :
+            EKinProtonRatio = self.protonEdep(event) / super(self.__class__, self).protonEdep(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        except AttributeError :
+            EKinProtonRatio = 1. # If super doesn't have protonEdep, we must be looking at the Nominal sample, so leave variables alone
+
         leadProtonTransformed3Mom = np.array( self.transformed3Mom(leadProton4Mom, EKinProtonRatio) )
         
         lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
         nu3Mom = np.array( [ nu4Mom[i] for i in range(0, 3) ] )
 
         # Calculate STVs
-        protonPt = transverseVector(self, inp = leadProtonTransformed3Mom, planarNormal = nu3Mom)
-        leptonPt = transverseVector(self, inp = lepton3Mom, planarNormal = nu3Mom)
+        protonPt = self.transverseVector(inp = leadProtonTransformed3Mom, planarNormal = nu3Mom)
+        leptonPt = self.transverseVector(inp = lepton3Mom, planarNormal = nu3Mom)
 
         dphit = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))) # Minus sign here?
         dpt = protonPt + leptonPt
@@ -210,15 +215,19 @@ class Nominal(Sample) :
         
         return dpt, dalphat, dphit
 
-    def doubleTransverseVariables(self, event, leadProton4Mom, leadPion4Mom) :
+    def doubleTransverseKinematics(self, event, leadProton4Mom, leadPion4Mom) :
 
         lepton4Mom = event.PrimaryLep_4mom
         nu4Mom = event.nu_4mom
         
-        EKinProtonRatio = self.protonEdepFV() / super(self.name).protonEdepFV() # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        try : 
+            EKinProtonRatio = self.protonEdep(event) / super(self.__class__, self).protonEdep(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+            EKinPionRatio = self.piCEdep(event) / super(self.__class__, self).piCEdep(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        except AttributeError :
+            EKinProtonRatio = 1 # If super doesn't have protonEdep or PiCEDep , we must be looking at the Nominal sample, so leave variables alone
+            EKinPionRatio = 1
+
         leadProtonTransformed3Mom = np.array( self.transformed3Mom(leadProton4Mom, EKinProtonRatio) )
-        
-        EKinPionRatio = self.piCEdepFV() / super(self.name).piCEdepFV() # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
         leadPionTransformed3Mom = np.array( self.transformed3Mom(leadPion4Mom, EKinPionRatio) )
         
         lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
@@ -248,16 +257,16 @@ class Nominal(Sample) :
     def variables(self, event) :
 
         leadPion4Mom, nPionAboveTHR = self.leadingPion4mom(event)
-        leadProton4Mom, nProtonAboveTHR = self.leadingPion4mom(event)
+        leadProton4Mom, nProtonAboveTHR = self.leadingProton4mom(event)
 
         dpt = 0
         dalphat = 0
         dphit = 0
         dptt = 0
         if event.IsCC and nPionAboveTHR == 0 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
-            dpt, dalphat, dphit = singleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom)
+            dpt, dalphat, dphit = self.singleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom)
         elif event.IsCC and nPionAboveTHR == 1 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
-            dptt = doubleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom, leadingPion4Mom = leadPion4Mom)
+            dptt = self.doubleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom, leadPion4Mom = leadPion4Mom)
 
         variables = { "Erec" :           self.Erec(event),
                       "Elep_true" :      self.leptonEnergy(event),
