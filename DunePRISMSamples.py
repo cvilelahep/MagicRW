@@ -115,21 +115,31 @@ class Nominal(Sample) :
         maxMom = 0
         max4Mom = [0, 0, 0, 0]
         nAboveThr = 0
+        EKinRatio = 1.
         if pdgCode == 2212 :
             thisTHR = proton_track_pthr
+            EKinRatio = self.EKinProtonRatio(event)
         elif pdgCode == 211 :
+            EKinRatio = self.EKinPionRatio(event)
             thisTHR = pion_track_pthr
 
         maxMom = thisTHR
 
         for i in range(0, event.NFSParts) :
             if abs(event.FSPart_PDG[i]) == pdgCode :
-                thisMom = sum( [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+3) ] )**0.5
+
+                this4Mom = [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+4) ]
+                
+                this3Mom = self.transformed3Mom(this4Mom, EKinRatio)
+
+                thisMom = sum( [ i**2 for i in this3Mom ] )**0.5
+
+
                 if thisMom > thisTHR :
                     nAboveThr += 1
                     if thisMom > maxMom :
                         maxMom = thisMom
-                        max4Mom = [ event.FSPart_4Mom[j] for j in range(i*4, i*4+4) ]
+                        max4Mom = this4Mom
 
         return max4Mom, nAboveThr
             
@@ -187,6 +197,23 @@ class Nominal(Sample) :
 
         return [ v4Mom[i]*pRatio for i in range(0, 3) ]
 
+
+    # Get the ratios here
+    def EKinProtonRatio (self, event) : 
+        # Apply momentum transformation to proton
+        try :
+            EKinProtonRatio = self.protonEdepFV(event) / super(self.__class__, self).protonEdepFV(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
+        except AttributeError :
+            EKinProtonRatio = 1. # If super doesn't have protonEdep, we must be looking at the Nominal sample, so leave variables 
+        return EKinProtonRatio
+
+    def EKinPionRatio (self, event) : 
+        # Apply momentum transformation to proton
+        try :
+            EKinPionRatio = self.pionEdepFV(event) / super(self.__class__, self).pionEdepFV(event)
+        except AttributeError :
+            EKinPionRatio = 1.
+
     def singleTransverseKinematics(self, event, leadProton4Mom) :
     
         lepton4Mom = event.PrimaryLep_4mom
@@ -194,12 +221,8 @@ class Nominal(Sample) :
         
         # Smear angles
         
-        # Apply momentum transformation to proton
-        try :
-            EKinProtonRatio = self.protonEdep(event) / super(self.__class__, self).protonEdep(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
-        except AttributeError :
-            EKinProtonRatio = 1. # If super doesn't have protonEdep, we must be looking at the Nominal sample, so leave variables alone
-
+        EKinProtonRatio = self.EKinProtonRatio(event)
+        
         leadProtonTransformed3Mom = np.array( self.transformed3Mom(leadProton4Mom, EKinProtonRatio) )
         
         lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
@@ -219,13 +242,9 @@ class Nominal(Sample) :
 
         lepton4Mom = event.PrimaryLep_4mom
         nu4Mom = event.nu_4mom
-        
-        try : 
-            EKinProtonRatio = self.protonEdep(event) / super(self.__class__, self).protonEdep(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
-            EKinPionRatio = self.piCEdep(event) / super(self.__class__, self).piCEdep(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
-        except AttributeError :
-            EKinProtonRatio = 1 # If super doesn't have protonEdep or PiCEDep , we must be looking at the Nominal sample, so leave variables alone
-            EKinPionRatio = 1
+
+        EKinProtonRatio = self.EKinProtonRatio(event)
+        EKinPionRatio = self.EKinPionRatio(event)
 
         leadProtonTransformed3Mom = np.array( self.transformed3Mom(leadProton4Mom, EKinProtonRatio) )
         leadPionTransformed3Mom = np.array( self.transformed3Mom(leadPion4Mom, EKinPionRatio) )
