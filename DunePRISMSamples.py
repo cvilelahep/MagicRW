@@ -128,12 +128,11 @@ class Nominal(Sample) :
         for i in range(0, event.NFSParts) :
             if abs(event.FSPart_PDG[i]) == pdgCode :
 
-                this4Mom = [ event.FSPart_4Mom[j]**2 for j in range(i*4, i*4+4) ]
+                this4Mom = [ event.FSPart_4Mom[j] for j in range(i*4, i*4+4) ]
                 
-                this3Mom = self.transformed3Mom(this4Mom, EKinRatio)
+                this3Mom = self.transformed3Mom(v4Mom = this4Mom, EKinRatio = EKinRatio)
 
                 thisMom = sum( [ i**2 for i in this3Mom ] )**0.5
-
 
                 if thisMom > thisTHR :
                     nAboveThr += 1
@@ -190,10 +189,16 @@ class Nominal(Sample) :
 
     def transformed3Mom(self, v4Mom, EKinRatio) :
 
-        mass = ( v4Mom[3] **2 - sum ( [ v4Mom[i]**2 for i in range(0, 3) ] ) )**0.5
+        momSquared = sum ( [ v4Mom[i]**2 for i in range(0, 3) ] )
+
+        if not momSquared : 
+            return [ 0. for i in range(0, 3) ]
+
+        mass = ( v4Mom[3] **2 - momSquared )**0.5
+
         EKinTransformed = ( v4Mom[3] - mass )*EKinRatio
         pTransformed = ( (mass + EKinTransformed)**2 - mass**2)**0.5
-        pRatio = pTransformed / sum( [ v4Mom[i]**2 for i in range(0, 3) ] )**0.5
+        pRatio = pTransformed / momSquared**0.5
 
         return [ v4Mom[i]*pRatio for i in range(0, 3) ]
 
@@ -205,6 +210,9 @@ class Nominal(Sample) :
             EKinProtonRatio = self.protonEdepFV(event) / super(self.__class__, self).protonEdepFV(event) # Assume super of self is the nominal sample and that the "transformed variable" is energy deposit
         except AttributeError :
             EKinProtonRatio = 1. # If super doesn't have protonEdep, we must be looking at the Nominal sample, so leave variables 
+        except ZeroDivisionError :
+            print "WARNING!!!: Zero deposited proton energy", event.fString
+            EKinProtonRatio = 1.
         return EKinProtonRatio
 
     def EKinPionRatio (self, event) : 
@@ -213,6 +221,10 @@ class Nominal(Sample) :
             EKinPionRatio = self.pionEdepFV(event) / super(self.__class__, self).pionEdepFV(event)
         except AttributeError :
             EKinPionRatio = 1.
+        except ZeroDivisionError :
+            EKinPionRatio = 1.
+
+        return EKinPionRatio
 
     def singleTransverseKinematics(self, event, leadProton4Mom) :
     
@@ -320,19 +332,30 @@ class ProtonEdepm20pc(Nominal) :
     def protonEdepVeto(self, event) :
         return 0.8*event.ProtonDep_veto
 
+class PionEdepm20pc(Nominal) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "PionEdepm20pc_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def pionEdepFV(self, event) :
+        return 0.8*event.PionDep_FV
+
+    def pionEdepVeto(self, event) :
+        return 0.8*event.PionDep_veto
+
 class ProtonEdepm20pcA(Nominal) :
     
     def __init__(self, outFilePath, inFilePath) :
         super(Nominal, self).__init__(name = "ProtonEdepm20pcA_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
-        if event.EKinNeutron_True >=  0.2*event.EKinProton_True :
+        if event.EKinNeutron_True >  0. :
             return 0.8*event.ProtonDep_FV
         else :
             return event.ProtonDep_FV
 
     def protonEdepVeto(self, event) :
-        if event.EKinNeutron_True >=  0.2*event.EKinProton_True :
+        if event.EKinNeutron_True > 0. :
             return 0.8*event.ProtonDep_veto
         else :
             return event.ProtonDep_veto
