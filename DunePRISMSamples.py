@@ -210,10 +210,10 @@ class Nominal(Sample) :
         leptonPt = self.transverseVector(inp = lepton3Mom, planarNormal = nu3Mom)
 
         dphit = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))) # Minus sign here?
-        dpt = np.linalg.norm(protonPt + leptonPt)
+        dpt = protonPt + leptonPt
         dalphat = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), dpt/np.linalg.norm(dpt))) # Minus sign here?
         
-        return dpt, dalphat, dphit
+        return np.linalg.norm(dpt), dalphat, dphit
 
     def doubleTransverseKinematics(self, event, leadProton4Mom, leadPion4Mom) :
 
