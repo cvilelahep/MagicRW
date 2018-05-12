@@ -211,7 +211,7 @@ class Nominal(Sample) :
         except AttributeError :
             EKinProtonRatio = 1. # If super doesn't have protonEdep, we must be looking at the Nominal sample, so leave variables 
         except ZeroDivisionError :
-            print "WARNING!!!: Zero deposited proton energy", event.fString
+#            print "WARNING!!!: Zero deposited proton energy", event.fString
             EKinProtonRatio = 1.
         return EKinProtonRatio
 

@@ -10,7 +10,7 @@ from corner import corner
 class Sample(object) :
     
     __metaclass__ = ABCMeta
-#   
+
     def __init__(self, name, outFilePath, inFilePath, trainFrac = 0.0):
         self.name = name
         self.outFilePath = outFilePath
