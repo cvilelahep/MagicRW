@@ -4,8 +4,8 @@ from multiprocessing import Process
 
 from DunePRISMSamples import Nominal, ProtonEdepm20pc, PionEdepm20pc, ProtonEdepm20pcA
 
-pickle = True
-train = True
+pickle = False
+train = False
 plot = True
 
 nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[0-4].Processed.root"
