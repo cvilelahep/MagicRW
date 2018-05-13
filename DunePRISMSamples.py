@@ -334,7 +334,7 @@ class Nominal(Sample) :
 
 class ProtonEdepm20pc(Nominal) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel == 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "ProtonEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
@@ -346,7 +346,7 @@ class ProtonEdepm20pc(Nominal) :
 
 class PionEdepm20pc(Nominal) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel == 0 ) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0 ) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "PionEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
