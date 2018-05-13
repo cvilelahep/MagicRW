@@ -334,8 +334,9 @@ class Nominal(Sample) :
 
 class ProtonEdepm20pc(Nominal) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "ProtonEdepm20pc_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel == 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         return 0.8*event.ProtonDep_FV
@@ -345,8 +346,9 @@ class ProtonEdepm20pc(Nominal) :
 
 class PionEdepm20pc(Nominal) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "PionEdepm20pc_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel == 0 ) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "PionEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def piCEdepFV(self, event) :
         return 0.8*event.PiCDep_FV
@@ -356,8 +358,9 @@ class PionEdepm20pc(Nominal) :
 
 class ProtonEdepm20pcA(Nominal) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcA_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel =0 ) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcA", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         if event.EKinNeutron_True >  0. :
@@ -373,8 +376,9 @@ class ProtonEdepm20pcA(Nominal) :
 
 class NominalTV(Nominal) :
 
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "NominalTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "NominalTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
                     "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
@@ -391,8 +395,9 @@ class NominalTV(Nominal) :
 
 class ProtonEdepm20pcTV(NominalTV) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         return 0.8*event.ProtonDep_FV
@@ -402,8 +407,9 @@ class ProtonEdepm20pcTV(NominalTV) :
 
 class PionEdepm20pcTV(NominalTV) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "PionEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "PionEdepm20pcTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def piCEdepFV(self, event) :
         return 0.8*event.PiCDep_FV
@@ -413,8 +419,9 @@ class PionEdepm20pcTV(NominalTV) :
 
 class ProtonEdepm20pcATV(NominalTV) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         if event.EKinNeutron_True >  0. :
@@ -430,7 +437,8 @@ class ProtonEdepm20pcATV(NominalTV) :
 
 class NominalTV_PRISM(NominalTV) :
 
-    def __init__(self, outFilePath, inFilePath) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "NominalTV_ND_PRISM_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
@@ -447,10 +455,11 @@ class NominalTV_PRISM(NominalTV) :
                     "oaBin"               : { "label" : r'Off-axis bin',                                            "range" : [-5, 65.], "logScale" : False },
                 }
 
-class ProtonEdepm20pcTV(NominalTV) :
+class ProtonEdepm20pcTV_PRISM(NominalTV_PRISM) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_PRISM", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         return 0.8*event.ProtonDep_FV
@@ -458,10 +467,11 @@ class ProtonEdepm20pcTV(NominalTV) :
     def protonEdepVeto(self, event) :
         return 0.8*event.ProtonDep_veto
 
-class PionEdepm20pcTV(NominalTV) :
+class PionEdepm20pcTV_PRISM(NominalTV_PRISM) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "PionEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "PionEdepm20pcTV_PRISM", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def piCEdepFV(self, event) :
         return 0.8*event.PiCDep_FV
@@ -469,10 +479,11 @@ class PionEdepm20pcTV(NominalTV) :
     def piCEdepVeto(self, event) :
         return 0.8*event.PiCDep_veto
 
-class ProtonEdepm20pcATV(NominalTV) :
+class ProtonEdepm20pcATV_PRISM(NominalTV_PRISM) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_PRISM", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         if event.EKinNeutron_True >  0. :
