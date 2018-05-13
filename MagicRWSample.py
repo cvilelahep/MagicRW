@@ -6,6 +6,7 @@ import cPickle as pickle
 import os
 from hep_ml.reweight import GBReweighter
 from corner import corner
+import matplotlib.pyplot as plt
 
 class Sample(object) :
     
@@ -144,25 +145,37 @@ class Sample(object) :
         targetDFtrain, targetDFtest = targetSample.getDataFrames()
         originDFtrain, originDFtest = self.getDataFrames()
 
-        targetDFtrain = targetDFtrain[self.observables.keys()]
-        originDFtrain = originDFtrain[self.observables.keys()]
-        targetDFtest = targetDFtest[self.observables.keys()]
-        originDFtest = originDFtest[self.observables.keys()]
+        targetDFtrainObs = targetDFtrain[self.observables.keys()]
+        originDFtrainObs = originDFtrain[self.observables.keys()]
+        targetDFtestObs = targetDFtest[self.observables.keys()]
+        originDFtestObs = originDFtest[self.observables.keys()]
         
         with open(self.gbrwPath(), 'r') as f :
             reweighter = pickle.load(f)
 
-        weightsTest  = reweighter.predict_weights(originDFtest)
-        weightsTrain = reweighter.predict_weights(originDFtrain)
+        weightsTest  = reweighter.predict_weights(originDFtestObs)
+        weightsTrain = reweighter.predict_weights(originDFtrainObs)
 
-        figTarget = self.getCornerPlot(dataFrame = targetDFtest, color = 'r', label = 'Nominal' )
+        figTarget = self.getCornerPlot(dataFrame = targetDFtestObs, color = 'r', label = 'Nominal' )
         figTarget.savefig(self.plotsDir()+"corner_"+self.name+"_targetOnly.png", transparent = True, figsize = {50, 50}, dpi = 240)
 
-        figOrigin = self.getCornerPlot(dataFrame = originDFtest, color = 'b', label = self.name, fig = figTarget )
+        figOrigin = self.getCornerPlot(dataFrame = originDFtestObs, color = 'b', label = self.name, fig = figTarget )
         figTarget.savefig(self.plotsDir()+"corner_"+self.name+"_target_originNotRW.png", transparent = True, figsize = {50, 50}, dpi = 240)
 
-        figOriginRW = self.getCornerPlot(dataFrame = originDFtest, color = 'g', label = self.name , weights = weightsTest, fig = figTarget)
+        figOriginRW = self.getCornerPlot(dataFrame = originDFtestObs, color = 'g', label = self.name , weights = weightsTest, fig = figTarget)
         figTarget.savefig(self.plotsDir()+"corner_"+self.name+".png", transparent = True, figsize = {50, 50}, dpi = 240)
+
+        figErec = plt.figure()
+
+        self.getErecResponse(dataFrame = targetDFtest, color = 'r', label = 'Nominal' )
+        figErec.savefig(self.plotsDir()+"Erec_"+self.name+"_targetOnly.png", transparent = True, figsize = {5, 5}, dpi = 240)
+        
+        self.getErecResponse(dataFrame = originDFtest, color = 'b', label = self.name, fig = figErec )
+        figErec.savefig(self.plotsDir()+"Erec_"+self.name+"_target_originNotRW.png", transparent = True, figsize = {5, 5}, dpi = 240)
+
+        self.getErecResponse(dataFrame = originDFtest, color = 'g', label = self.name, weights = weightsTest, fig = figErec )
+        figErec.savefig(self.plotsDir()+"Erec_"+self.name+".png", transparent = True, figsize = {5, 5}, dpi = 240)
+
         
             
     def getCornerPlot(self, dataFrame, color, label, weights = None, fig = None) :
@@ -187,6 +200,12 @@ class Sample(object) :
                 fig.axes[i*5+i].yaxis.set_label_position("right")
 
         return fig
+
+    def getErecResponse(self, dataFrame, color, label, weights = None, fig = None )  :
+        return plt.hist( ( dataFrame["Erec"] - dataFrame["Etrue"] ) / dataFrame["Etrue"], label = label, color = color, weights = weights, bins = 100, range = [-0.3, 0.2] , histtype = 'step')
+#        return plt.hist( ( dataFrame["Erec"] - dataFrame["Etrue"] ) / dataFrame["Etrue"], label = label, color = color, fig = fig, weights = weights, bins = 100, range = [-0.3, 0.2] )
+    
+        
     
     def produceFriendTrees(self, filePaths) :
         pass

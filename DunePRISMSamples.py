@@ -16,8 +16,10 @@ angularResolution = 2e-3*180/pi
 
 class Nominal(Sample) :
     
-    def __init__(self, outFilePath, inFilePath) :
-        super(Nominal, self).__init__(name = "Nominal_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+
+        super(Nominal, self).__init__(name = "Nominal", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def leptonEnergy(self, event) :
         return event.PrimaryLep_4mom[3]
@@ -174,9 +176,10 @@ class Nominal(Sample) :
         if event.stop != 0 :
             isSelected = False
             return isSelected
-        if event.PrimaryLepPDG != 13 :
-            isSelected = False
-            return isSelected
+        if self.chargeSel != 0 :
+            if event.PrimaryLepPDG != (chargeSel * 13) :
+                isSelected = False
+                return isSelected
             
         return isSelected
 
@@ -270,6 +273,9 @@ class Nominal(Sample) :
         dptt = np.dot( leadProtonTransformed3Mom + leadPionTransformed3Mom, ztt)
 
         return dptt
+
+    def getOAbin(self, event) :
+        return int(-(event.XOffset+event.vtxInDetX)/60)
                                               
     # Variables to be used in training
     observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
@@ -288,7 +294,7 @@ class Nominal(Sample) :
     
     # Pairs of true variables for binned reweighting
     trueVarPairs = [ ["q0", "q3"], ["EKproton_True", "Etrue"], ["w", "Etrue"] , ["Q2", "Etrue"] ]
-    
+
     def variables(self, event) :
 
         leadPion4Mom, nPionAboveTHR = self.leadingPion4mom(event)
@@ -320,7 +326,8 @@ class Nominal(Sample) :
                       "dphit"    :       dphit,
                       "dptt"    :        dptt, 
                       "nPionAboveTrackThr" : nPionAboveTHR,
-                      "nProtonAboveTrackThr" : nProtonAboveTHR
+                      "nProtonAboveTrackThr" : nProtonAboveTHR,
+                      "oaBin" :          self.getOAbin(event)
         }
 
         return variables
@@ -342,15 +349,130 @@ class PionEdepm20pc(Nominal) :
         super(Nominal, self).__init__(name = "PionEdepm20pc_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def piCEdepFV(self, event) :
-        return 0.8*event.PionDep_FV
+        return 0.8*event.PiCDep_FV
 
     def piCEdepVeto(self, event) :
-        return 0.8*event.PionDep_veto
+        return 0.8*event.PiCDep_veto
 
 class ProtonEdepm20pcA(Nominal) :
     
     def __init__(self, outFilePath, inFilePath) :
         super(Nominal, self).__init__(name = "ProtonEdepm20pcA_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def protonEdepFV(self, event) :
+        if event.EKinNeutron_True >  0. :
+            return 0.8*event.ProtonDep_FV
+        else :
+            return event.ProtonDep_FV
+
+    def protonEdepVeto(self, event) :
+        if event.EKinNeutron_True > 0. :
+            return 0.8*event.ProtonDep_veto
+        else :
+            return event.ProtonDep_veto
+
+class NominalTV(Nominal) :
+
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "NominalTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
+                    "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
+                    "Eproton_dep"         : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',                          "range" : [0., 2.] , "logScale" : True },
+                    "EpiC_dep"            : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]',                  "range" : [0., 2.] , "logScale" : True },
+                    "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True },
+                    "nPionAboveTrackThr"  : { "label" : r'N${_{\pi^{\pm}}}^{p > '+str(pion_track_pthr*1e3)+' MeV/c}$',"range" : [0., 10] , "logScale" : True },
+                    "nProtonAboveTrackThr": { "label" : r'N${_{p}}^{p > '+str(proton_track_pthr*1e3)+' MeV/c}$',        "range" : [0., 10] , "logScale" : True },
+                    "dpt"                 : { "label" : r'$\delta{_{p_{\mathrm{T}}}}$ [GeV/c]',                       "range" : [0., 1.5], "logScale" : True },
+                    "dphit"               : { "label" : r'$\delta{_{\phi_{\mathrm{T}}}}$',                            "range" : [0., pi],  "logScale" : True },
+                    "dalphat"             : { "label" : r'$\delta{_{\alpha_{\mathrm{T}}}}$',                          "range" : [0., pi],  "logScale" : True },
+                    "dptt"                : { "label" : r'$\delta{_{p_\mathrm{TT}}}$ [GeV/c]',                      "range" : [-1., 1.], "logScale" : True },                    
+                }
+
+class ProtonEdepm20pcTV(NominalTV) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def protonEdepFV(self, event) :
+        return 0.8*event.ProtonDep_FV
+
+    def protonEdepVeto(self, event) :
+        return 0.8*event.ProtonDep_veto
+
+class PionEdepm20pcTV(NominalTV) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "PionEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def piCEdepFV(self, event) :
+        return 0.8*event.PiCDep_FV
+
+    def piCEdepVeto(self, event) :
+        return 0.8*event.PiCDep_veto
+
+class ProtonEdepm20pcATV(NominalTV) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def protonEdepFV(self, event) :
+        if event.EKinNeutron_True >  0. :
+            return 0.8*event.ProtonDep_FV
+        else :
+            return event.ProtonDep_FV
+
+    def protonEdepVeto(self, event) :
+        if event.EKinNeutron_True > 0. :
+            return 0.8*event.ProtonDep_veto
+        else :
+            return event.ProtonDep_veto
+
+class NominalTV_PRISM(NominalTV) :
+
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "NominalTV_ND_PRISM_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
+                    "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
+                    "Eproton_dep"         : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',                          "range" : [0., 2.] , "logScale" : True },
+                    "EpiC_dep"            : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]',                  "range" : [0., 2.] , "logScale" : True },
+                    "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True },
+                    "nPionAboveTrackThr"  : { "label" : r'N${_{\pi^{\pm}}}^{p > '+str(pion_track_pthr*1e3)+' MeV/c}$',"range" : [0., 10] , "logScale" : True },
+                    "nProtonAboveTrackThr": { "label" : r'N${_{p}}^{p > '+str(proton_track_pthr*1e3)+' MeV/c}$',        "range" : [0., 10] , "logScale" : True },
+                    "dpt"                 : { "label" : r'$\delta{_{p_{\mathrm{T}}}}$ [GeV/c]',                       "range" : [0., 1.5], "logScale" : True },
+                    "dphit"               : { "label" : r'$\delta{_{\phi_{\mathrm{T}}}}$',                            "range" : [0., pi],  "logScale" : True },
+                    "dalphat"             : { "label" : r'$\delta{_{\alpha_{\mathrm{T}}}}$',                          "range" : [0., pi],  "logScale" : True },
+                    "dptt"                : { "label" : r'$\delta{_{p_\mathrm{TT}}}$ [GeV/c]',                      "range" : [-1., 1.], "logScale" : True },
+                    "oaBin"               : { "label" : r'Off-axis bin',                                            "range" : [-5, 65.], "logScale" : False },
+                }
+
+class ProtonEdepm20pcTV(NominalTV) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def protonEdepFV(self, event) :
+        return 0.8*event.ProtonDep_FV
+
+    def protonEdepVeto(self, event) :
+        return 0.8*event.ProtonDep_veto
+
+class PionEdepm20pcTV(NominalTV) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "PionEdepm20pcTV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def piCEdepFV(self, event) :
+        return 0.8*event.PiCDep_FV
+
+    def piCEdepVeto(self, event) :
+        return 0.8*event.PiCDep_veto
+
+class ProtonEdepm20pcATV(NominalTV) :
+    
+    def __init__(self, outFilePath, inFilePath) :
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_ND_stop0_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         if event.EKinNeutron_True >  0. :
