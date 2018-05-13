@@ -46,6 +46,8 @@ samples = [ Nominal(         inFilePath = FHC_nominalFilePath, outFilePath = FHC
             PionEdepm20pcTV_PRISM(   inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_PRISM, chargeSel=-1),
             ProtonEdepm20pcATV_PRISM(inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_PRISM, chargeSel=-1)]
 
+#samples = [ Nominal(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePath, chargeSel=+1) ]
+
 if pickle :
     processesPickle = [ Process( target = s.pickleData ) for s in samples ] 
 

@@ -177,7 +177,7 @@ class Nominal(Sample) :
             isSelected = False
             return isSelected
         if self.chargeSel != 0 :
-            if event.PrimaryLepPDG != (chargeSel * 13) :
+            if event.PrimaryLepPDG != (self.chargeSel * 13) :
                 isSelected = False
                 return isSelected
             
@@ -440,6 +440,26 @@ class NominalTV_PRISM(NominalTV) :
     def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "NominalTV_ND_PRISM_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def selection(self, event) :
+        isSelected = True
+
+        if not event.IsCC :
+            isSelected = False
+            return isSelected
+        if self.nonLepDepVeto(event) > 0.05 :
+            isSelected = False
+            return isSelected
+#        if event.stop != 0 :
+#            isSelected = False
+#            return isSelected
+        if self.chargeSel != 0 :
+            if event.PrimaryLepPDG != (self.chargeSel * 13) :
+                isSelected = False
+                return isSelected
+            
+        return isSelected
+
 
     observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
                     "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
