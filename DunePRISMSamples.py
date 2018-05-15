@@ -4,15 +4,18 @@ import pandas as pd
 
 import numpy as np
 
-from math import acos, pi
+from math import acos, pi, cos, sin
 
 m_proton = 0.93827208
 
 proton_track_pthr = 0.200
 pion_track_pthr = 0.130
 
-angularResolution = 2e-3*180/pi
+proton_mom_res = 0.05
+pion_mom_res = 0.05
+lepton_mom_res = 0.05
 
+angularResolution = 2e-3
 
 class Nominal(Sample) :
     
@@ -229,12 +232,49 @@ class Nominal(Sample) :
 
         return EKinPionRatio
 
+    def RotateVector(angle, v, u ) :
+
+        # Rotate vector v around vector u by angle
+        u = u/np.linalg.norm(u)
+
+        # Use Euler-Rodriguez
+        a = cos (angle/2.)
+        b = u[0] * sin (angle/2.)
+        c = u[1] * sin (angle/2.)
+        d = u[2] * sin (angle/2.)
+
+        w = [ b, c, d ]
+
+        return v + 2 * a*np.cross(w, v) + 2*(np.cross(w, np.cross(w, v)))
+
+    def smearAngle(self, v3, angleSigma) :
+        originalVector = v3
+        
+        # Get normal vector:
+        u = np.cross(v3, [0, 0, 1])
+        if not sum(u) :
+            u = np.cross(v3, [0, 1, 0])
+        if not sum(u) :
+            u = np.cross(v3, [1, 0, 0])
+
+        # Rotate v around u by randomly thrown angle
+        angle = np.random.normal(scale = angleSigma)
+        v3prime = RotateVector(angle, v3, u)
+        
+        # Now randomize around original vector's direction
+        angle = np.random.uniform(low = 0., high = pi) # just pi as angle above can be negative, right?
+        v3primeprime = RotateVector(angle, v = v3prime, u = originalVector)
+
+        return v3primeprime
+
+    def smearMomentum(self, mom3, sigma) :
+        return mom3 * np.random.normal(1., sigma)
+        
+
     def singleTransverseKinematics(self, event, leadProton4Mom) :
     
         lepton4Mom = event.PrimaryLep_4mom
         nu4Mom = event.nu_4mom
-        
-        # Smear angles
         
         EKinProtonRatio = self.EKinProtonRatio(event)
         
@@ -242,6 +282,14 @@ class Nominal(Sample) :
         
         lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
         nu3Mom = np.array( [ nu4Mom[i] for i in range(0, 3) ] )
+
+        # Smear angles
+        lepton3Mom = smearAngle(lepton3Mom, angularResolution)
+        leadProtonTransformed3Mom = smearAngle(leadProtonTransformed3Mom, angularResolution)
+        
+        # Smear momenta?
+        lepton3Mom = smearMomentum(lepton3Mom, lepton_mom_res)
+        leadProtonTransformed3Mom = smearMomentum(leadProtonTransformed3Mom, proton_mom_res)
 
         # Calculate STVs
         protonPt = self.transverseVector(inp = leadProtonTransformed3Mom, planarNormal = nu3Mom)
@@ -266,6 +314,15 @@ class Nominal(Sample) :
         
         lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
         nu3Mom = np.array( [ nu4Mom[i] for i in range(0, 3) ] )
+
+        lepton3Mom = smearAngle(lepton3Mom, angularResolution)
+        leadProtonTransformed3Mom = smearAngle(leadProtonTransformed3Mom, angularResolution)
+        leadPionTransformed3Mom = smearAngle(leadPionTransformed3Mom, angularResolution)
+
+        # Smear momenta?
+        lepton3Mom = smearMomentum(lepton3Mom, lepton_mom_res)
+        leadProtonTransformed3Mom = smearMomentum(leadProtonTransformed3Mom, proton_mom_res)
+        leadPionTransformed3Mom = smearMomentum(leadPionTransformed3Mom, pion_mom_res)
 
         ztt = np.cross(nu3Mom, lepton3Mom)
         ztt = ztt/np.linalg.norm(ztt)
