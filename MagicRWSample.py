@@ -7,6 +7,7 @@ import os
 from hep_ml.reweight import GBReweighter
 from corner import corner
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Is this the most appropriate place for this? Maybe not...
 GenieCodeDict = { 1 : "QE",
@@ -165,7 +166,8 @@ class Sample(object) :
                 reweighter = pickle.load(f)
                 weightsTest  = reweighter.predict_weights(originDFtestObs)
         else :
-            weightsTest = self.predictBinnedWeights(originDFtestObs,  weightScheme)
+            originDFtestVarPairs = originDFtest[self.trueVarPairs[weightScheme]["vars"] + ["GENIEIntMode"]]
+            weightsTest = self.predictBinnedWeights(originDFtestVarPairs,  weightScheme)
             
         figTarget = self.getCornerPlot(dataFrame = targetDFtestObs, color = 'r', label = 'Nominal' )
         figTarget.savefig(self.plotsDir()+"corner_"+self.name+"_targetOnly.png", transparent = True, figsize = {50, 50}, dpi = 240)
@@ -206,9 +208,9 @@ class Sample(object) :
 
         for i in range(0, len(logScales)) :
             if logScales[i] :
-                fig.axes[i*5+i].set_yscale("log")
-                fig.axes[i*5+i].set_ylim(ymin = 1)
-                fig.axes[i*5+i].yaxis.set_label_position("right")
+                fig.axes[i*len(logScales)+i].set_yscale("log")
+                fig.axes[i*len(logScales)+i].set_ylim(ymin = 1)
+                fig.axes[i*len(logScales)+i].yaxis.set_label_position("right")
 
         return fig
 
@@ -222,38 +224,46 @@ class Sample(object) :
             
         originDFtrain, originDFtest = self.getDataFrames()
 
-        originDF = pd.concat(originDFtrain, originDFtest)
+        originDF = pd.concat([originDFtrain, originDFtest])
 
         with open(self.gbrwPath(), 'r') as f :
             reweighter = pickle.load(f) # Wrap this?
 
-        weights = reweighter.predict_weights(originDF)
+        weights = reweighter.predict_weights(originDF[self.observables.keys()])
 
-        originDF = pd.join(originDF, pd.DataFrame({"weights" : weights }))
+        originDF = pd.DataFrame.join(originDF, pd.DataFrame([{"weights" : weight} for weight in weights ]))
 
         binnedWeights = {}
         
         for schemeName, schemeVars in self.trueVarPairs.iteritems() :
             binnedWeights[schemeName] = {}
-            for modeName, iMode in GenieCodeDict.iterritems() :
+            for iMode, modeName in GenieCodeDict.iteritems() :
                 thisModeDF = originDF[originDF['GENIEIntMode'] == iMode]
                 h1, xedges, yedges = np.histogram2d(x = thisModeDF[schemeVars['vars'][0]], y = thisModeDF[schemeVars['vars'][1]], bins = schemeVars['bins'], range = schemeVars['range'])
                 h2, xedges, yedges = np.histogram2d(x = thisModeDF[schemeVars['vars'][0]], y = thisModeDF[schemeVars['vars'][1]], bins = schemeVars['bins'], range = schemeVars['range'], weights = thisModeDF['weights'])
 
                 h = h2/h1
-            binnedWeights[schemeName][modeName] = h
+                binnedWeights[schemeName][iMode] = {"histogram" : h, "xedges" : xedges, "yedges" : yedges }
 
         with open(self.binnedWeightsPath(), "wb") as f :
             pickle.dump(binnedWeights, f)
 
     def predictBinnedWeights(self, df, varPair) :
-        with open(self.binnedWeightsPath(), "f") as f :
-            binnedWeights = pickle.dump(f)
+        with open(self.binnedWeightsPath(), "r") as f :
+            binnedWeights = pickle.load(f)
+            
+        weights = []
+        for index, row in df.iterrows() :
 
-        
-        
-        pass
-        
+            xedges = binnedWeights[varPair][row["GENIEIntMode"]]["xedges"]
+            yedges = binnedWeights[varPair][row["GENIEIntMode"]]["yedges"]
+
+            xBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][0]], xedges)
+            yBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][1]], yedges)
+
+            weights += [ binnedWeights[varPair][row["GENIEIntMode"]]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1. ]
+
+        return weights
 
     def produceFriendTrees(self, filePaths) :
         pass

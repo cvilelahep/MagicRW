@@ -288,7 +288,7 @@ class Nominal(Sample) :
     
     # Pairs of true variables for binned reweighting
     trueVarPairs = { "q0q3" :  {"vars" : ["q0", "q3"],               "labels" : [r'q$_{0}$ [GeV]', r'q$_{3}$ [GeV/c]'], "bins" : 75, "range" : [[0., 5.], [0., 5.]] },
-                     "EnuTp" : {"vars" : ["Etrue", "EKproton_True"], "labels" : [r'E${_{\nu}}^{\mathrm{true}}$ [GeV]', r'EK$_{\mathrm{p}}^{\mathrm{true}}$ [GeV]'], "bins" : 75, "range" : [[0., 10.], [0., 3.]] },
+                     "EnuTp" : {"vars" : ["Etrue", "EKproton_True"], "labels" : [r'E${_{\nu}}^{\mathrm{true}}$ [GeV]', r'EK$_{\mathrm{p}}^{\mathrm{true}}$ [GeV]'], "bins" : 75, "range" : [[0., 10.], [0., 3.]] },                    "ElTp" :  {"vars" : ["Elep_true", "EKproton_True"], "labels" : [r'E${_{\ell}}^{\mathrm{true}}$ [GeV]', r'EK$_{\mathrm{p}}^{\mathrm{true}}$ [GeV]'], "bins" : 75, "range" : [[0., 10.], [0., 3.]] },
                      "EnuQ2" : {"vars" : ["Etrue", "Q2"],            "labels" : [r'E${_{\nu}}^{\mathrm{true}}$ [GeV]', r'Q$^{2}$ [GeV$^{2}]'], "bins" : 75, "range" : [[0., 10.], [0., 5.]] },
                      "EnuW"  : {"vars" : ["Etrue", "w"],             "labels" : [r'E${_{\nu}}^{\mathrm{true}}$ [GeV]', r'W [GeV/c$^{2}$]'], "bins" : 75, "range" : [[0., 10.], [0., 5.]] } }
                      
@@ -384,11 +384,11 @@ class NominalTV(Nominal) :
                     "Eproton_dep"         : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',                          "range" : [0., 2.] , "logScale" : True },
                     "EpiC_dep"            : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]',                  "range" : [0., 2.] , "logScale" : True },
                     "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True },
-                    "nPionAboveTrackThr"  : { "label" : r'N${_{\pi^{\pm}}}^{p > '+str(pion_track_pthr*1e3)+' MeV/c}$',"range" : [0., 10] , "logScale" : True },
-                    "nProtonAboveTrackThr": { "label" : r'N${_{p}}^{p > '+str(proton_track_pthr*1e3)+' MeV/c}$',        "range" : [0., 10] , "logScale" : True },
-                    "dpt"                 : { "label" : r'$\delta{_{p_{\mathrm{T}}}}$ [GeV/c]',                       "range" : [0., 1.5], "logScale" : True },
-                    "dphit"               : { "label" : r'$\delta{_{\phi_{\mathrm{T}}}}$',                            "range" : [0., pi],  "logScale" : True },
-                    "dalphat"             : { "label" : r'$\delta{_{\alpha_{\mathrm{T}}}}$',                          "range" : [0., pi],  "logScale" : True },
+                    "nPionAboveTrackThr"  : { "label" : r'N${_{\pi^{\pm}}}^{p > '+str(pion_track_pthr*1e3)+' MeV/c}$',"range" : [0.0, 10] , "logScale" : True },
+                    "nProtonAboveTrackThr": { "label" : r'N${_{p}}^{p > '+str(proton_track_pthr*1e3)+' MeV/c}$',        "range" : [.0, 10] , "logScale" : True },
+                    "dpt"                 : { "label" : r'$\delta{_{p_{\mathrm{T}}}}$ [GeV/c]',                       "range" : [0.01, 1.5], "logScale" : False },
+                    "dphit"               : { "label" : r'$\delta{_{\phi_{\mathrm{T}}}}$',                            "range" : [0.01, pi],  "logScale" : False },
+                    "dalphat"             : { "label" : r'$\delta{_{\alpha_{\mathrm{T}}}}$',                          "range" : [0.01, pi],  "logScale" : False },
                     "dptt"                : { "label" : r'$\delta{_{p_\mathrm{TT}}}$ [GeV/c]',                      "range" : [-1., 1.], "logScale" : True },                    
                 }
 
