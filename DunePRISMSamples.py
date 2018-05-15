@@ -293,7 +293,12 @@ class Nominal(Sample) :
                     
     
     # Pairs of true variables for binned reweighting
-    trueVarPairs = [ ["q0", "q3"], ["EKproton_True", "Etrue"], ["w", "Etrue"] , ["Q2", "Etrue"] ]
+    trueVarPairs = { "q0q3" :  {"vars" : ["q0", "q3"],               "labels" : [r'q$_{0}$ [GeV]', r'q$_{3}$ [GeV/c]'], "bins" : 75, "range" : [[0., 5.], [0., 5.]] },
+                     "EnuTp" : {"vars" : ["Etrue", "EKproton_True"], "labels" : [r'E${_{\nu}}^{\mathrm{true}}$ [GeV]', r'EK$_{\mathrm{p}}^{\mathrm{true}}$ [GeV]'], "bins" : 75, "range" : [[0., 10.], [0., 3.]] },
+                     "EnuQ2" : {"vars" : ["Etrue", "Q2"],            "labels" : [r'E${_{\nu}}^{\mathrm{true}}$ [GeV]', r'Q$^{2}$ [GeV$^{2}]'], "bins" : 75, "range" : [[0., 10.], [0., 5.]] },
+                     "EnuW"  : {"vars" : ["Etrue", "w"],             "labels" : [r'E${_{\nu}}^{\mathrm{true}}$ [GeV]', r'W [GeV/c$^{2}$]'], "bins" : 75, "range" : [[0., 10.], [0., 5.]] } }
+                     
+                     
 
     def variables(self, event) :
 

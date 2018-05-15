@@ -8,6 +8,15 @@ from hep_ml.reweight import GBReweighter
 from corner import corner
 import matplotlib.pyplot as plt
 
+# Is this the most appropriate place for this? Maybe not...
+GenieCodeDict = { 1 : "QE",
+                  2 : "MEC/2p2h",
+                  3 : "RES",
+                  4 : "DIS",
+                  5 : "COH",
+                  6 : "nu-e elastic",
+                  7 : "IMD" }
+
 class Sample(object) :
     
     __metaclass__ = ABCMeta
@@ -67,6 +76,9 @@ class Sample(object) :
 
     def gbrwPath(self) :
         return self.baseDir()+self.name+"_gbrw.p"
+
+    def binnedWeightsPath(self) :
+        return self.baseDir()+self.name+"_binnedWeights.p"
         
     def pickleData(self) :
         trainSet, testSet = self.dataframe()
@@ -137,7 +149,7 @@ class Sample(object) :
         with open(self.gbrwPath(), "wb") as f :
             pickle.dump(reweighter, f)
 
-    def plotDiagnostics(self, targetSample) :
+    def plotDiagnostics(self, targetSample, weightScheme = "gbrw") :
         
         if not os.path.isdir(self.plotsDir()) :
             os.makedirs(self.plotsDir())
@@ -145,17 +157,16 @@ class Sample(object) :
         targetDFtrain, targetDFtest = targetSample.getDataFrames()
         originDFtrain, originDFtest = self.getDataFrames()
 
-        targetDFtrainObs = targetDFtrain[self.observables.keys()]
-        originDFtrainObs = originDFtrain[self.observables.keys()]
         targetDFtestObs = targetDFtest[self.observables.keys()]
         originDFtestObs = originDFtest[self.observables.keys()]
-        
-        with open(self.gbrwPath(), 'r') as f :
-            reweighter = pickle.load(f)
 
-        weightsTest  = reweighter.predict_weights(originDFtestObs)
-        weightsTrain = reweighter.predict_weights(originDFtrainObs)
-
+        if weightScheme == "gbrw" :
+            with open(self.gbrwPath(), 'r') as f :
+                reweighter = pickle.load(f)
+                weightsTest  = reweighter.predict_weights(originDFtestObs)
+        else :
+            weightsTest = self.predictBinnedWeights(originDFtestObs,  weightScheme)
+            
         figTarget = self.getCornerPlot(dataFrame = targetDFtestObs, color = 'r', label = 'Nominal' )
         figTarget.savefig(self.plotsDir()+"corner_"+self.name+"_targetOnly.png", transparent = True, figsize = {50, 50}, dpi = 240)
 
@@ -163,7 +174,7 @@ class Sample(object) :
         figTarget.savefig(self.plotsDir()+"corner_"+self.name+"_target_originNotRW.png", transparent = True, figsize = {50, 50}, dpi = 240)
 
         figOriginRW = self.getCornerPlot(dataFrame = originDFtestObs, color = 'g', label = self.name , weights = weightsTest, fig = figTarget)
-        figTarget.savefig(self.plotsDir()+"corner_"+self.name+".png", transparent = True, figsize = {50, 50}, dpi = 240)
+        figTarget.savefig(self.plotsDir()+"corner_"+self.name+"_"+weightScheme+".png", transparent = True, figsize = {50, 50}, dpi = 240)
 
         figErec = plt.figure()
 
@@ -174,7 +185,7 @@ class Sample(object) :
         figErec.savefig(self.plotsDir()+"Erec_"+self.name+"_target_originNotRW.png", transparent = True, figsize = {5, 5}, dpi = 240)
 
         self.getErecResponse(dataFrame = originDFtest, color = 'g', label = self.name, weights = weightsTest, fig = figErec )
-        figErec.savefig(self.plotsDir()+"Erec_"+self.name+".png", transparent = True, figsize = {5, 5}, dpi = 240)
+        figErec.savefig(self.plotsDir()+"Erec_"+self.name+"_"+weightScheme+".png", transparent = True, figsize = {5, 5}, dpi = 240)
 
         
             
@@ -205,8 +216,45 @@ class Sample(object) :
         return plt.hist( ( dataFrame["Erec"] - dataFrame["Etrue"] ) / dataFrame["Etrue"], label = label, color = color, weights = weights, bins = 100, range = [-0.3, 0.2] , histtype = 'step')
 #        return plt.hist( ( dataFrame["Erec"] - dataFrame["Etrue"] ) / dataFrame["Etrue"], label = label, color = color, fig = fig, weights = weights, bins = 100, range = [-0.3, 0.2] )
     
+    def makeBinnedWeights(self) :
+        if not os.path.isdir(self.plotsDir()) :
+            os.makedirs(self.plotsDir())
+            
+        originDFtrain, originDFtest = self.getDataFrames()
+
+        originDF = pd.concat(originDFtrain, originDFtest)
+
+        with open(self.gbrwPath(), 'r') as f :
+            reweighter = pickle.load(f) # Wrap this?
+
+        weights = reweighter.predict_weights(originDF)
+
+        originDF = pd.join(originDF, pd.DataFrame({"weights" : weights }))
+
+        binnedWeights = {}
         
-    
+        for schemeName, schemeVars in self.trueVarPairs.iteritems() :
+            binnedWeights[schemeName] = {}
+            for modeName, iMode in GenieCodeDict.iterritems() :
+                thisModeDF = originDF[originDF['GENIEIntMode'] == iMode]
+                h1, xedges, yedges = np.histogram2d(x = thisModeDF[schemeVars['vars'][0]], y = thisModeDF[schemeVars['vars'][1]], bins = schemeVars['bins'], range = schemeVars['range'])
+                h2, xedges, yedges = np.histogram2d(x = thisModeDF[schemeVars['vars'][0]], y = thisModeDF[schemeVars['vars'][1]], bins = schemeVars['bins'], range = schemeVars['range'], weights = thisModeDF['weights'])
+
+                h = h2/h1
+            binnedWeights[schemeName][modeName] = h
+
+        with open(self.binnedWeightsPath(), "wb") as f :
+            pickle.dump(binnedWeights, f)
+
+    def predictBinnedWeights(self, df, varPair) :
+        with open(self.binnedWeightsPath(), "f") as f :
+            binnedWeights = pickle.dump(f)
+
+        
+        
+        pass
+        
+
     def produceFriendTrees(self, filePaths) :
         pass
     
