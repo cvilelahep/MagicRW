@@ -304,7 +304,7 @@ class Sample(object) :
                     xBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][0]], xedges)
                     yBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][1]], yedges)
                     
-                    weights[schemeName] = binnedWeights[schemeName][event.GENIEInteractionTopology]]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.
+                    weights[schemeName] = binnedWeights[schemeName][event.GENIEInteractionTopology]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.
                 else :
                     weights[schemeName] = 1.
 
