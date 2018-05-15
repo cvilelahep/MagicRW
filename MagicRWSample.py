@@ -8,6 +8,7 @@ from hep_ml.reweight import GBReweighter
 from corner import corner
 import matplotlib.pyplot as plt
 import numpy as np
+from root_numpy import array2root
 
 # Is this the most appropriate place for this? Maybe not...
 GenieCodeDict = { 1 : "QE",
@@ -265,6 +266,54 @@ class Sample(object) :
 
         return weights
 
-    def produceFriendTrees(self, filePaths) :
-        pass
-    
+    @staticmethod
+    def produceFriendTrees(filePath, nuModeSample, antinuModeSample) :
+        
+        with open(nuModeSample.binnedWeightsPath(), "r") as f :
+            binnedWeightsNu = pickle.load(f)
+        with open(antinuModeSample.binnedWeightsPath(), "r") as f :
+            binnedWeightsAntiNu = pickle.load(f)
+        
+        EDeps = TChain("EDeps")
+        EDeps.Add(filePath)
+
+        df = pd.DataFrame()
+
+        for event in EDeps :
+            
+            thisEvent = nuModeSample.variables(event)
+
+            weights = {}
+            
+            binnedWeights = None
+
+            if nuModeSample.selection(event) :
+                # It's a nu event!
+                binnedWeights = binnedWeightsNu
+                thisSample = nuModeSample
+            elif antinuModeSample.selection(event) :
+                # It's an antinu event:
+                binnedWeights =binnedWeightsAntiNu
+                thisSample = antinuModeSample
+
+            for schemeName, schemeVars in nuMode.trueVarPairs.iteritems() :
+                if binnedWeights != None :
+                    xedges = binnedWeights[schemeName][event.GENIEInteractionTopology]["xedges"]
+                    yedges = binnedWeights[schemeName][event.GENIEInteractionTopology]["yedges"]
+                    
+                    xBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][0]], xedges)
+                    yBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][1]], yedges)
+                    
+                    weights[schemeName] = binnedWeights[schemeName][event.GENIEInteractionTopology]]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.
+                else :
+                    weights[schemeName] = 1.
+
+            # Not really a weight, but will be useful
+            weights["Erec"] = thisSample.variables(event)["Erec"]
+
+            df.append(pd.DataFrame(weights))
+        
+        df.fillna(1.)
+
+        outFname = os.path.splitext(filePath)[0]+'_weights.root'
+        array2root(df, filePath, 'rw_'+nuModeSample.name)
