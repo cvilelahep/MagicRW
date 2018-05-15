@@ -110,6 +110,9 @@ class Nominal(Sample) :
     def protonEKinTrue(self, event) :
         return event.EKinProton_True
 
+    def neutronEKin(self, event) :
+        return event.EKinNeutron_True + (1 - self.EKinProtonRatio(event))*event.EKinProton_True
+
     def Etrue(self, event) :
         return event.nu_4mom[3]
 
@@ -232,7 +235,7 @@ class Nominal(Sample) :
 
         return EKinPionRatio
 
-    def RotateVector(angle, v, u ) :
+    def RotateVector(self, angle, v, u ) :
 
         # Rotate vector v around vector u by angle
         u = u/np.linalg.norm(u)
@@ -259,11 +262,11 @@ class Nominal(Sample) :
 
         # Rotate v around u by randomly thrown angle
         angle = np.random.normal(scale = angleSigma)
-        v3prime = RotateVector(angle, v3, u)
+        v3prime = self.RotateVector(angle, v3, u)
         
         # Now randomize around original vector's direction
         angle = np.random.uniform(low = 0., high = pi) # just pi as angle above can be negative, right?
-        v3primeprime = RotateVector(angle, v = v3prime, u = originalVector)
+        v3primeprime = self.RotateVector(angle, v = v3prime, u = originalVector)
 
         return v3primeprime
 
@@ -284,16 +287,18 @@ class Nominal(Sample) :
         nu3Mom = np.array( [ nu4Mom[i] for i in range(0, 3) ] )
 
         # Smear angles
-        lepton3Mom = smearAngle(lepton3Mom, angularResolution)
-        leadProtonTransformed3Mom = smearAngle(leadProtonTransformed3Mom, angularResolution)
+        lepton3Mom = self.smearAngle(lepton3Mom, angularResolution)
+        leadProtonTransformed3Mom = self.smearAngle(leadProtonTransformed3Mom, angularResolution)
         
         # Smear momenta?
-        lepton3Mom = smearMomentum(lepton3Mom, lepton_mom_res)
-        leadProtonTransformed3Mom = smearMomentum(leadProtonTransformed3Mom, proton_mom_res)
+        lepton3Mom = self.smearMomentum(lepton3Mom, lepton_mom_res)
+        leadProtonTransformed3Mom = self.smearMomentum(leadProtonTransformed3Mom, proton_mom_res)
 
         # Calculate STVs
         protonPt = self.transverseVector(inp = leadProtonTransformed3Mom, planarNormal = nu3Mom)
         leptonPt = self.transverseVector(inp = lepton3Mom, planarNormal = nu3Mom)
+
+        print np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))
 
         dphit = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))) # Minus sign here?
         dpt = protonPt + leptonPt
@@ -315,14 +320,14 @@ class Nominal(Sample) :
         lepton3Mom = np.array( [ lepton4Mom[i] for i in range(0, 3) ] )
         nu3Mom = np.array( [ nu4Mom[i] for i in range(0, 3) ] )
 
-        lepton3Mom = smearAngle(lepton3Mom, angularResolution)
-        leadProtonTransformed3Mom = smearAngle(leadProtonTransformed3Mom, angularResolution)
-        leadPionTransformed3Mom = smearAngle(leadPionTransformed3Mom, angularResolution)
+        lepton3Mom = self.smearAngle(lepton3Mom, angularResolution)
+        leadProtonTransformed3Mom = self.smearAngle(leadProtonTransformed3Mom, angularResolution)
+        leadPionTransformed3Mom = self.smearAngle(leadPionTransformed3Mom, angularResolution)
 
         # Smear momenta?
-        lepton3Mom = smearMomentum(lepton3Mom, lepton_mom_res)
-        leadProtonTransformed3Mom = smearMomentum(leadProtonTransformed3Mom, proton_mom_res)
-        leadPionTransformed3Mom = smearMomentum(leadPionTransformed3Mom, pion_mom_res)
+        lepton3Mom = self.smearMomentum(lepton3Mom, lepton_mom_res)
+        leadProtonTransformed3Mom = self.smearMomentum(leadProtonTransformed3Mom, proton_mom_res)
+        leadPionTransformed3Mom = self.smearMomentum(leadPionTransformed3Mom, pion_mom_res)
 
         ztt = np.cross(nu3Mom, lepton3Mom)
         ztt = ztt/np.linalg.norm(ztt)
@@ -377,6 +382,7 @@ class Nominal(Sample) :
                       "Q2" :             self.Q2(event),
                       "GENIEIntMode" :   self.GENIEIntMode(event),
                       "EKproton_True" :  self.protonEKinTrue(event),
+                      "EKneutron" :      self.neutronEKin(event),
                       "dpt" :            dpt,
                       "dalphat" :        dalphat,
                       "dphit"    :       dphit,
@@ -491,44 +497,58 @@ class ProtonEdepm20pcATV(NominalTV) :
         else :
             return event.ProtonDep_veto
 
-class NominalTV_PRISM(NominalTV) :
+class NominalTV_Neutron(NominalTV) :
 
     def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "NominalTV_ND_PRISM_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
-
-    def selection(self, event) :
-        isSelected = True
-
-        if not event.IsCC :
-            isSelected = False
-            return isSelected
-        if self.nonLepDepVeto(event) > 0.05 :
-            isSelected = False
-            return isSelected
-#        if event.stop != 0 :
-#            isSelected = False
-#            return isSelected
-        if self.chargeSel != 0 :
-            if event.PrimaryLepPDG != (self.chargeSel * 13) :
-                isSelected = False
-                return isSelected
-            
-        return isSelected
-
+        super(Nominal, self).__init__(name = "NominalTV_ND_Neutron_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
                     "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
                     "Eproton_dep"         : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',                          "range" : [0., 2.] , "logScale" : True },
+                    "EKneutron"       : { "label" : r'E${_{n}}^{\mathrm{true}}$',                               "range" : [0., 2.], "logScale" : True },
                     "EpiC_dep"            : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]',                  "range" : [0., 2.] , "logScale" : True },
-                    "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True }
+                    "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True },
+#                    "nPionAboveTrackThr"  : { "label" : r'N${_{\pi^{\pm}}}^{p > '+str(pion_track_pthr*1e3)+' MeV/c}$',"range" : [0.0, 10] , "logScale" : True },
+#                    "nProtonAboveTrackThr": { "label" : r'N${_{p}}^{p > '+str(proton_track_pthr*1e3)+' MeV/c}$',        "range" : [.0, 10] , "logScale" : True },
+#                    "dpt"                 : { "label" : r'$\delta{_{p_{\mathrm{T}}}}$ [GeV/c]',                       "range" : [0.01, 1.5], "logScale" : False },
+#                    "dphit"               : { "label" : r'$\delta{_{\phi_{\mathrm{T}}}}$',                            "range" : [0.01, pi],  "logScale" : False },
+#                    "dalphat"             : { "label" : r'$\delta{_{\alpha_{\mathrm{T}}}}$',                          "range" : [0.01, pi],  "logScale" : False },
+#                    "dptt"                : { "label" : r'$\delta{_{p_\mathrm{TT}}}$ [GeV/c]',                      "range" : [-1., 1.], "logScale" : True },                    
                 }
 
-class ProtonEdepm20pcTV_PRISM(NominalTV_PRISM) :
+#                     def selection(self, event) :
+#                         isSelected = True
+#                 
+#                         if not event.IsCC :
+#                             isSelected = False
+#                             return isSelected
+#                         if self.nonLepDepVeto(event) > 0.05 :
+#                             isSelected = False
+#                             return isSelected
+#                 #        if event.stop != 0 :
+#                 #            isSelected = False
+#                 #            return isSelected
+#                         if self.chargeSel != 0 :
+#                             if event.PrimaryLepPDG != (self.chargeSel * 13) :
+#                                 isSelected = False
+#                                 return isSelected
+#                             
+#                         return isSelected
+
+
+#    observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
+#                    "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
+#                    "Eproton_dep"         : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',                          "range" : [0., 2.] , "logScale" : True },
+#                    "EpiC_dep"            : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]',                  "range" : [0., 2.] , "logScale" : True },
+#                    "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True }
+#                }
+
+class ProtonEdepm20pcTV_Neutron(NominalTV_Neutron) :
     
     def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_PRISM", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         return 0.8*event.ProtonDep_FV
@@ -536,11 +556,11 @@ class ProtonEdepm20pcTV_PRISM(NominalTV_PRISM) :
     def protonEdepVeto(self, event) :
         return 0.8*event.ProtonDep_veto
 
-class PionEdepm20pcTV_PRISM(NominalTV_PRISM) :
+class PionEdepm20pcTV_Neutron(NominalTV_Neutron) :
     
     def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "PionEdepm20pcTV_PRISM", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "PionEdepm20pcTV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def piCEdepFV(self, event) :
         return 0.8*event.PiCDep_FV
@@ -548,11 +568,11 @@ class PionEdepm20pcTV_PRISM(NominalTV_PRISM) :
     def piCEdepVeto(self, event) :
         return 0.8*event.PiCDep_veto
 
-class ProtonEdepm20pcATV_PRISM(NominalTV_PRISM) :
+class ProtonEdepm20pcATV_Neutron(NominalTV_Neutron) :
     
     def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_PRISM", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def protonEdepFV(self, event) :
         if event.EKinNeutron_True >  0. :

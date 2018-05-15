@@ -4,23 +4,24 @@ from multiprocessing import Process
 
 from DunePRISMSamples import *
 
-pickle = False
-train = False
-plot = False
+pickle = True
+train = True
 produceBinned = True
+
+plot = True
 plotBinned = True
 
 FHC_nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[0-4].Processed.root"
 FHC_fakeFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[5-9].Processed.root"
 FHC_outFilePath = "/gpfs/scratch/crfernandesv/MagicRW/FHC_Samples"
 FHC_outFilePathTV = "/gpfs/scratch/crfernandesv/MagicRW/FHC_SamplesTV"
-FHC_outFilePathTV_PRISM = "/gpfs/scratch/crfernandesv/MagicRW/FHC_SamplesTV_PRISM"
+FHC_outFilePathTV_Neutron = "/gpfs/scratch/crfernandesv/MagicRW/FHC_SamplesTV_Neutron"
 
 RHC_nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/RHC/4855497.*[0-4].Processed.root"
 RHC_fakeFilePath = "/gpfs/scratch/crfernandesv/DunePrism/RHC/4855497.*[5-9].Processed.root"
 RHC_outFilePath = "/gpfs/scratch/crfernandesv/MagicRW/RHC_Samples"
 RHC_outFilePathTV = "/gpfs/scratch/crfernandesv/MagicRW/RHC_SamplesTV"
-RHC_outFilePathTV_PRISM = "/gpfs/scratch/crfernandesv/MagicRW/RHC_SamplesTV_PRISM"
+RHC_outFilePathTV_Neutron = "/gpfs/scratch/crfernandesv/MagicRW/RHC_SamplesTV_Neutron"
 
 # BELOW "chargeSel" means sign of the PDG code, so + is particle, and - antiparticle - selecting the outgoing muon.
 samplesOA_FHC = [ Nominal(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePath, chargeSel=+1),
@@ -33,10 +34,10 @@ samplesOA_TV_FHC = [NominalTV(         inFilePath = FHC_nominalFilePath, outFile
                     PionEdepm20pcTV(   inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV, chargeSel=+1),
                     ProtonEdepm20pcATV(inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV, chargeSel=+1)]
 
-samplesPRISM_TV_FHC = [ NominalTV_PRISM(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePathTV_PRISM, chargeSel=+1), 
-                        ProtonEdepm20pcTV_PRISM( inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV_PRISM, chargeSel=+1),
-                        PionEdepm20pcTV_PRISM(   inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV_PRISM, chargeSel=+1),
-                        ProtonEdepm20pcATV_PRISM(inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV_PRISM, chargeSel=+1)]
+samplesNeutron_TV_FHC = [ NominalTV_Neutron(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePathTV_Neutron, chargeSel=+1), 
+                        ProtonEdepm20pcTV_Neutron( inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV_Neutron, chargeSel=+1),
+                        PionEdepm20pcTV_Neutron(   inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV_Neutron, chargeSel=+1),
+                        ProtonEdepm20pcATV_Neutron(inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV_Neutron, chargeSel=+1)]
 
 samplesOA_RHC = [Nominal(         inFilePath = RHC_nominalFilePath, outFilePath = RHC_outFilePath, chargeSel=-1), 
                  ProtonEdepm20pc( inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePath, chargeSel=-1),
@@ -48,16 +49,14 @@ samplesOA_TV_RHC = [ NominalTV(         inFilePath = RHC_nominalFilePath, outFil
                      PionEdepm20pcTV(   inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV, chargeSel=-1),
                      ProtonEdepm20pcATV(inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV, chargeSel=-1)]
 
-samplesPRISM_TV_RHC = [ NominalTV_PRISM(         inFilePath = RHC_nominalFilePath, outFilePath = RHC_outFilePathTV_PRISM, chargeSel=-1), 
-                        ProtonEdepm20pcTV_PRISM( inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_PRISM, chargeSel=-1),
-                        PionEdepm20pcTV_PRISM(   inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_PRISM, chargeSel=-1),
-                        ProtonEdepm20pcATV_PRISM(inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_PRISM, chargeSel=-1)]
+samplesNeutron_TV_RHC = [ NominalTV_Neutron(         inFilePath = RHC_nominalFilePath, outFilePath = RHC_outFilePathTV_Neutron, chargeSel=-1), 
+                        ProtonEdepm20pcTV_Neutron( inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_Neutron, chargeSel=-1),
+                        PionEdepm20pcTV_Neutron(   inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_Neutron, chargeSel=-1),
+                        ProtonEdepm20pcATV_Neutron(inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_Neutron, chargeSel=-1)]
 
-
-samplesTestNom = [ Nominal(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePath, chargeSel=+1) ]
-
-samples = [  samplesOA_FHC, samplesOA_TV_FHC, samplesPRISM_TV_FHC, samplesOA_RHC, samplesOA_TV_RHC, samplesPRISM_TV_RHC ]
-#samples = [  samplesOA_FHC, samplesOA_RHC ]
+samples = [  samplesOA_FHC, samplesOA_TV_FHC, samplesNeutron_TV_FHC, samplesOA_RHC, samplesOA_TV_RHC, samplesNeutron_TV_RHC ]
+samples = [ samplesNeutron_TV_FHC, samplesNeutron_TV_FHC ]
+#samples = [  samplesOA_FHC ]
 
 
 if pickle :
