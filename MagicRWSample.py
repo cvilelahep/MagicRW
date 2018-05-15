@@ -267,7 +267,7 @@ class Sample(object) :
         return weights
 
     @staticmethod
-    def produceFriendTrees(filePath, nuModeSample, antinuModeSample) :
+    def produceFriendTrees(filePath, nuModeSample, antinuModeSample, isNominal = False) :
         
         with open(nuModeSample.binnedWeightsPath(), "r") as f :
             binnedWeightsNu = pickle.load(f)
@@ -287,33 +287,44 @@ class Sample(object) :
             
             binnedWeights = None
 
+            thisSample = nuModeSample
             if nuModeSample.selection(event) :
                 # It's a nu event!
-                binnedWeights = binnedWeightsNu
+                if not isNominal :
+                    binnedWeights = binnedWeightsNu
                 thisSample = nuModeSample
             elif antinuModeSample.selection(event) :
                 # It's an antinu event:
-                binnedWeights =binnedWeightsAntiNu
+                if not isNominal :
+                    binnedWeights =binnedWeightsAntiNu
                 thisSample = antinuModeSample
+            else : 
+                pass
 
-            for schemeName, schemeVars in nuMode.trueVarPairs.iteritems() :
+            eventDF = thisSample.variables(event)
+
+            for schemeName, schemeVars in nuModeSample.trueVarPairs.iteritems() :
                 if binnedWeights != None :
                     xedges = binnedWeights[schemeName][event.GENIEInteractionTopology]["xedges"]
                     yedges = binnedWeights[schemeName][event.GENIEInteractionTopology]["yedges"]
                     
-                    xBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][0]], xedges)
-                    yBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][1]], yedges)
+                    xBin = np.digitize(eventDF[thisSample.trueVarPairs[schemeName]["vars"][0]], xedges)
+                    yBin = np.digitize(eventDF[thisSample.trueVarPairs[schemeName]["vars"][1]], yedges)
                     
-                    weights[schemeName] = binnedWeights[schemeName][event.GENIEInteractionTopology]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.
+                    weights[schemeName] = [binnedWeights[schemeName][event.GENIEInteractionTopology]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.]
                 else :
-                    weights[schemeName] = 1.
+                    weights[schemeName] = [1.]
 
             # Not really a weight, but will be useful
-            weights["Erec"] = thisSample.variables(event)["Erec"]
 
-            df.append(pd.DataFrame(weights))
-        
+            weights["Erec"] = [eventDF["Erec"]]
+            
+            weights["IsSelected"] = [ not (binnedWeights == None) ]
+
+            df = df.append(pd.DataFrame(weights))
+            
         df.fillna(1.)
 
-        outFname = os.path.splitext(filePath)[0]+'_weights.root'
-        array2root(df, filePath, 'rw_'+nuModeSample.name)
+        outFname = os.path.splitext(filePath)[0]+'_'+nuModeSample.name+'_weights.root'
+
+        array2root(arr = df.to_records(index = False), filename = outFname, treename = 'rw_'+nuModeSample.name, mode = 'recreate')
