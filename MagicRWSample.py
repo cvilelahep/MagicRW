@@ -203,10 +203,10 @@ class Sample(object) :
 
     def getErecResponse(self, dataFrame, color, label, weights = None, fig = None )  :
         return plt.hist( ( dataFrame["Erec"] - dataFrame["Etrue"] ) / dataFrame["Etrue"], label = label, color = color, weights = weights, bins = 100, range = [-0.3, 0.2] , histtype = 'step')
-#        return plt.hist( ( dataFrame["Erec"] - dataFrame["Etrue"] ) / dataFrame["Etrue"], label = label, color = color, fig = fig, weights = weights, bins = 100, range = [-0.3, 0.2] )
+
     
-        
-    
+
+
     def produceFriendTrees(self, filePaths) :
         pass
     
