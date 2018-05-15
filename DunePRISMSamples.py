@@ -183,7 +183,7 @@ class Nominal(Sample) :
             isSelected = False
             return isSelected
         if self.chargeSel != 0 :
-            if event.PrimaryLepPDG != (self.chargeSel * 13) :
+            if np.sign(event.PrimaryLepPDG) != np.sign(self.chargeSel) :
                 isSelected = False
                 return isSelected
             
@@ -298,7 +298,7 @@ class Nominal(Sample) :
         protonPt = self.transverseVector(inp = leadProtonTransformed3Mom, planarNormal = nu3Mom)
         leptonPt = self.transverseVector(inp = lepton3Mom, planarNormal = nu3Mom)
 
-        print np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))
+#        print np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))
 
         dphit = pi-acos(np.dot(leptonPt/np.linalg.norm(leptonPt), protonPt/np.linalg.norm(protonPt))) # Minus sign here?
         dpt = protonPt + leptonPt
