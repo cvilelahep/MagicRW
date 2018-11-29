@@ -4,21 +4,22 @@ from multiprocessing import Process
 
 from DunePRISMSamples import *
 
-pickle = True
-train = True
-produceBinned = True
+pickle = False
+train = False
+produceBinned = False
+produceROOT = True
 
-plot = True
-plotBinned = True
+plot = False
+plotBinned = False
 
-FHC_nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[0-4].Processed.root"
-FHC_fakeFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[5-9].Processed.root"
+FHC_nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[0-4].Processed_mergedWeights.root"
+FHC_fakeFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[5-9].Processed_mergedWeights.root"
 FHC_outFilePath = "/gpfs/scratch/crfernandesv/MagicRW/FHC_Samples"
 FHC_outFilePathTV = "/gpfs/scratch/crfernandesv/MagicRW/FHC_SamplesTV"
 FHC_outFilePathTV_Neutron = "/gpfs/scratch/crfernandesv/MagicRW/FHC_SamplesTV_Neutron"
 
-RHC_nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/RHC/4855497.*[0-4].Processed.root"
-RHC_fakeFilePath = "/gpfs/scratch/crfernandesv/DunePrism/RHC/4855497.*[5-9].Processed.root"
+RHC_nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/RHC/4855497.*[0-4].Processed_mergedWeights.root"
+RHC_fakeFilePath = "/gpfs/scratch/crfernandesv/DunePrism/RHC/4855497.*[5-9].Processed_mergedWeights.root"
 RHC_outFilePath = "/gpfs/scratch/crfernandesv/MagicRW/RHC_Samples"
 RHC_outFilePathTV = "/gpfs/scratch/crfernandesv/MagicRW/RHC_SamplesTV"
 RHC_outFilePathTV_Neutron = "/gpfs/scratch/crfernandesv/MagicRW/RHC_SamplesTV_Neutron"
@@ -54,9 +55,10 @@ samplesNeutron_TV_RHC = [ NominalTV_Neutron(         inFilePath = RHC_nominalFil
                         PionEdepm20pcTV_Neutron(   inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_Neutron, chargeSel=-1),
                         ProtonEdepm20pcATV_Neutron(inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV_Neutron, chargeSel=-1)]
 
-samples = [  samplesOA_FHC, samplesOA_TV_FHC, samplesNeutron_TV_FHC, samplesOA_RHC, samplesOA_TV_RHC, samplesNeutron_TV_RHC ]
-samples = [ samplesNeutron_TV_FHC, samplesNeutron_TV_FHC ]
-#samples = [  samplesOA_FHC ]
+#samples = [  samplesOA_FHC, samplesOA_TV_FHC, samplesNeutron_TV_FHC, samplesOA_RHC, samplesOA_TV_RHC, samplesNeutron_TV_RHC ]
+#samples = [ samplesNeutron_TV_FHC, samplesNeutron_TV_FHC ]
+
+samples = [  samplesOA_FHC ]
 
 
 if pickle :
@@ -109,6 +111,19 @@ if produceBinned :
     for p in processesPickle :
         p.join()
 
+if produceROOT :
+    processesPickle = []
+
+    for sample in samples :
+        sNom = sample[0]
+        for s in sample[1:] :
+            processesPickle.append( Process( target = s.makeROOTBinnedWeights ) )
+
+    for p in processesPickle :
+        p.start()
+    for p in processesPickle :
+        p.join()
+
 if plotBinned :
     processesPickle = []
 
@@ -125,4 +140,5 @@ if plotBinned :
         p.start()
     for p in processesPickle :
         p.join()
+
 

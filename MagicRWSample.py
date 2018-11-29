@@ -1,7 +1,7 @@
 from random import random
 from abc import ABCMeta, abstractmethod, abstractproperty
 import pandas as pd
-from ROOT import TFile, TChain
+from ROOT import TFile, TChain, TH2F
 import cPickle as pickle
 import os
 from hep_ml.reweight import GBReweighter
@@ -81,6 +81,9 @@ class Sample(object) :
 
     def binnedWeightsPath(self) :
         return self.baseDir()+self.name+"_binnedWeights.p"
+
+    def binnedWeightsPathROOT(self) :
+        return self.baseDir()+self.name+"_binnedWeights.root"
         
     def pickleData(self) :
         trainSet, testSet = self.dataframe()
@@ -158,6 +161,9 @@ class Sample(object) :
 
         targetDFtrain, targetDFtest = targetSample.getDataFrames()
         originDFtrain, originDFtest = self.getDataFrames()
+        
+        print self.observables.keys()
+        print targetDFtest
 
         targetDFtestObs = targetDFtest[self.observables.keys()]
         originDFtestObs = originDFtest[self.observables.keys()]
@@ -248,6 +254,31 @@ class Sample(object) :
 
         with open(self.binnedWeightsPath(), "wb") as f :
             pickle.dump(binnedWeights, f)
+
+    def makeROOTBinnedWeights(self) :
+        if not os.path.isfile(self.binnedWeightsPath()) :
+            print "makeROOTBinnedWeights WARNING: binned weights do not exist. Calling makeBinnedWeights ..."
+            self.makeBinnedWeights()
+        with open(self.binnedWeightsPath(), "r") as f :
+            binnedWeights = pickle.load(f)
+        
+        rootHistos = []
+        
+        for schemeName, binnedWeightScheme in binnedWeights.iteritems() :
+            for modeNum, binnedWeightSchemeMode in binnedWeightScheme.iteritems() :
+
+                rootHistos.append(TH2F(schemeName+"_"+str(modeNum), schemeName+" "+GenieCodeDict[modeNum], self.trueVarPairs[schemeName]["bins"], self.trueVarPairs[schemeName]["range"][0][0], self.trueVarPairs[schemeName]["range"][0][1], self.trueVarPairs[schemeName]["bins"], self.trueVarPairs[schemeName]["range"][1][0], self.trueVarPairs[schemeName]["range"][1][1]))
+                for x in range(1, self.trueVarPairs[schemeName]["bins"]+1) :
+                    for y in range(1, self.trueVarPairs[schemeName]["bins"]+1) :
+                        if np.isnan(binnedWeightSchemeMode["histogram"][x-1][y-1]) :
+                            rootHistos[-1].SetBinContent(x,y,1.)
+                        else :
+                            rootHistos[-1].SetBinContent(x,y,binnedWeightSchemeMode["histogram"][x-1][y-1])
+        fOut = TFile(self.binnedWeightsPathROOT(), "RECREATE")
+        for histo in rootHistos :
+            histo.Write()
+        fOut.Close()
+            
 
     def predictBinnedWeights(self, df, varPair) :
         with open(self.binnedWeightsPath(), "r") as f :
