@@ -4,13 +4,14 @@ from multiprocessing import Process
 
 from DunePRISMSamples import *
 
-pickle = False
-train = False
-produceBinned = False
+pickle = True
+train = True
+produceBinned = True
 produceROOT = True
 
-plot = False
-plotBinned = False
+plot = True
+plotBinned = True
+plotBinnedROOT = True
 
 FHC_nominalFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[0-4].Processed_mergedWeights.root"
 FHC_fakeFilePath = "/gpfs/scratch/crfernandesv/DunePrism/FHC/4855489.*[5-9].Processed_mergedWeights.root"
@@ -135,6 +136,23 @@ if plotBinned :
             processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "q0q3",) ) )
             processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "EnuW",) ) )
             processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "EnuQ2",) ) )
+
+    for p in processesPickle :
+        p.start()
+    for p in processesPickle :
+        p.join()
+
+if plotBinnedROOT :
+    processesPickle = []
+
+    for sample in samples :
+        sNom = sample[0]
+        for s in sample[1:] :
+            processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "EnuTp",True,) ) )
+            processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "ElTp",True,) ) )
+            processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "q0q3",True,) ) )
+            processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "EnuW",True,) ) )
+            processesPickle.append( Process( target = s.plotDiagnostics, args=(sNom, "EnuQ2",True,) ) )
 
     for p in processesPickle :
         p.start()

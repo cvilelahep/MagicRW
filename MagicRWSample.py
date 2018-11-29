@@ -154,7 +154,7 @@ class Sample(object) :
         with open(self.gbrwPath(), "wb") as f :
             pickle.dump(reweighter, f)
 
-    def plotDiagnostics(self, targetSample, weightScheme = "gbrw") :
+    def plotDiagnostics(self, targetSample, weightScheme = "gbrw", useROOThistos = False) :
         
         if not os.path.isdir(self.plotsDir()) :
             os.makedirs(self.plotsDir())
@@ -172,10 +172,17 @@ class Sample(object) :
             with open(self.gbrwPath(), 'r') as f :
                 reweighter = pickle.load(f)
                 weightsTest  = reweighter.predict_weights(originDFtestObs)
-        else :
+        elif not useROOThistos :
             originDFtestVarPairs = originDFtest[self.trueVarPairs[weightScheme]["vars"] + ["GENIEIntMode"]]
             weightsTest = self.predictBinnedWeights(originDFtestVarPairs,  weightScheme)
+        elif useROOThistos :
+            originDFtestVarPairs = originDFtest[self.trueVarPairs[weightScheme]["vars"] + ["GENIEIntMode"]]
+            weightsTest = self.predictBinnedWeightsROOT(originDFtestVarPairs,  weightScheme)
             
+        if useROOThistos and weightScheme != "gbrw" :
+            weightScheme += "_ROOT"
+            
+
         figTarget = self.getCornerPlot(dataFrame = targetDFtestObs, color = 'r', label = 'Nominal' )
         figTarget.savefig(self.plotsDir()+"corner_"+self.name+"_targetOnly.png", transparent = True, figsize = {50, 50}, dpi = 240)
 
@@ -295,6 +302,27 @@ class Sample(object) :
 
             weights += [ binnedWeights[varPair][row["GENIEIntMode"]]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1. ]
 
+        return weights
+
+    def predictBinnedWeightsROOT(self, df, varPair) :
+        
+        fIn = TFile(self.binnedWeightsPathROOT())
+        rootHistos = {}
+        for modeNum in GenieCodeDict :
+            rootHistos[modeNum] = fIn.Get(varPair+"_"+str(modeNum))
+            
+        weights = []
+        for index, row in df.iterrows() :
+            if ( row[ self.trueVarPairs[varPair]["vars"][0] ] > self.trueVarPairs[varPair]["range"][0][0] and 
+                 row[ self.trueVarPairs[varPair]["vars"][0] ] < self.trueVarPairs[varPair]["range"][0][1] and
+                 row[ self.trueVarPairs[varPair]["vars"][1] ] > self.trueVarPairs[varPair]["range"][1][0] and 
+                 row[ self.trueVarPairs[varPair]["vars"][1] ] < self.trueVarPairs[varPair]["range"][1][1] ) :
+                 
+                weights += [ rootHistos[row["GENIEIntMode"]].Interpolate(row[ self.trueVarPairs[varPair]["vars"][0] ], row[ self.trueVarPairs[varPair]["vars"][1] ] ) ]
+            else :
+                weights += [ 1.0 ]
+
+        fIn.Close()
         return weights
 
     @staticmethod
