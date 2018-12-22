@@ -25,101 +25,97 @@ class Nominal(Sample) :
         super(Nominal, self).__init__(name = "Nominal", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
     def leptonEnergy(self, event) :
-        return event.PrimaryLep_4mom[3]
+        return event.LepE
 
     def protonEdepFV(self, event) :
-        return event.ProtonDep_FV
+        return 0
 
     def protonEdepVeto(self, event) :
-        return event.ProtonDep_veto
+        return 0
 
     def protonEdep(self, event) :
-        return self.protonEdepFV(event) + self.protonEdepVeto(event)
+        return event.eRecoP
 
     def neutronEdepFV(self, event) :
-        return event.NeutronDep_FV
+        return 0
 
     def neutronEdepVeto(self, event) :
-        return event.NeutronDep_veto
+        return 0
 
     def neutronEdep(self, event) :
-        return self.neutronEdepFV(event) + self.neutronEdepVeto(event)
+        return eRecoN
 
     def piCEdepFV(self, event) :
-        return event.PiCDep_FV
+        return 0
 
     def piCEdepVeto(self, event) :
-        return event.PiCDep_veto
+        return 0
 
     def piCEdep(self, event) :
-        return self.piCEdepFV(event) + self.piCEdepVeto(event)
+        return event.eRecoPip + event.eRecoPim
 
     def pi0EdepFV(self, event) :
-        return event.Pi0Dep_FV
+        return 0
 
     def pi0EdepVeto(self, event) :
-        return event.Pi0Dep_veto
+        return 0
 
     def pi0Edep(self, event) :
-        return self.pi0EdepFV(event) + self.pi0EdepVeto(event)
+        return event.eRecoPi0
 
     def otherEdepVeto(self, event) :
-        return event.OtherDep_veto
+        return 0
 
     def otherEdepFV(self, event) :
-        return event.OtherDep_FV
+        return 0
     
     def otherEdep(self, event) :
-        return self.otherEdepFV(event) + self.otherEdepVeto(event)
+        return event.eRecoOther
     
     def nonLepDepVeto(self, event) :
-        return self.protonEdepVeto(event) + self.neutronEdepVeto(event) + self.piCEdepVeto(event) + self.pi0EdepVeto(event) + self.otherEdepVeto(event)
+        return event.Ehad_veto
 
     def nonLepDepFV(self, event) :
-        return self.protonEdepFV(event) + self.neutronEdepFV(event) + self.piCEdepFV(event) + self.pi0EdepFV(event) + self.otherEdepFV(event)
+        return 0
     
     def nonLepDep(self, event) :
-        return self.nonLepDepVeto(event) + self.nonLepDepFV(event)
+        return self.protonEdep(event) + self.neutronEdep(event) + self.piCEdep(event) + self.pi0Edep(event) + self.otherEdep(event)
     
     def bindingEnergy(self) :
-        return 0.0323
+        return 0.0
     
     def Erec(self, event) :
         return self.nonLepDep(event) + self.leptonEnergy(event) + self.bindingEnergy()
 
     def q0(self, event) :
-        return event.FourMomTransfer_True[3]
+        return event.Y*event.Ev
 
     def q3(self, event) :
-        return sum ( [ event.FourMomTransfer_True[i]**2 for i in range(0,3) ] )**0.5
+        return (-event.Q2 - self.q0(event))**0.5
 
     def w(self, event) :
-        w2 = - event.Q2_True + 2*self.q0(event)*m_proton + m_proton**2
-
-        if w2 > 0 :
-            return w2**0.5
-        else :
-            return 0 # Sometimes (rarely) w^2 is negative (?!), return 0 in those cases
+        event.W
 
     def Q2(self, event) :
-        return event.Q2_True
+        return event.Q2
 
     def GENIEIntMode(self, event) :
-        return event.GENIEInteractionTopology
+        return event.mode
 
     def protonEKinTrue(self, event) :
-        return event.EKinProton_True
+        return event.eP
 
     def neutronEKin(self, event) :
-        return event.EKinNeutron_True + (1 - self.EKinProtonRatio(event))*event.EKinProton_True
+        return event.eN + (1 - self.EKinProtonRatio(event))*event.eP
 
     def Etrue(self, event) :
-        return event.nu_4mom[3]
+        return event.Ev
 
     def leptonAngle(self, event) :
-        return acos(event.PrimaryLep_4mom[3]/( sum ( [ PrimaryLep_4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
+        return acos(event.LepMomZ/( (event.LepMomX**2 +event.LepMomY**2 +event.LepMomZ**2)**0.5 ) )
 
     def leading4Mom(self, event, pdgCode) :
+        return 0 # NOT implemented in CAFs
         maxMom = 0
         max4Mom = [0, 0, 0, 0]
         nAboveThr = 0
@@ -173,17 +169,17 @@ class Nominal(Sample) :
     def selection(self, event) :
         isSelected = True
 
-        if not event.IsCC :
+        if not event.isCC :
             isSelected = False
             return isSelected
         if self.nonLepDepVeto(event) > 0.05 :
             isSelected = False
             return isSelected
-        if event.stop != 0 :
-            isSelected = False
-            return isSelected
+#        if event.stop != 0 :
+#            isSelected = False
+#            return isSelected
         if self.chargeSel != 0 :
-            if np.sign(event.PrimaryLepPDG) != np.sign(self.chargeSel) :
+            if np.sign(event.LepPDG) != np.sign(self.chargeSel) :
                 isSelected = False
                 return isSelected
             
@@ -275,7 +271,7 @@ class Nominal(Sample) :
         
 
     def singleTransverseKinematics(self, event, leadProton4Mom) :
-    
+        return 0 # Not implemented in current CAFs
         lepton4Mom = event.PrimaryLep_4mom
         nu4Mom = event.nu_4mom
         
@@ -307,6 +303,7 @@ class Nominal(Sample) :
         return np.linalg.norm(dpt), dalphat, dphit
 
     def doubleTransverseKinematics(self, event, leadProton4Mom, leadPion4Mom) :
+        return 0 # Not implemented in current CAFs
 
         lepton4Mom = event.PrimaryLep_4mom
         nu4Mom = event.nu_4mom
@@ -337,6 +334,7 @@ class Nominal(Sample) :
         return dptt
 
     def getOAbin(self, event) :
+        return 0 # Not implemented in current CAFs
         return int(-(event.XOffset+event.vtxInDetX)/60)
                                               
     # Variables to be used in training
@@ -372,8 +370,10 @@ class Nominal(Sample) :
 
         variables = { "Erec" :           self.Erec(event),
                       "Elep_true" :      self.leptonEnergy(event),
-                      "Eproton_dep" :    self.protonEdep(event) if leadProton4Mom[3] > 0 else 0, 
-                      "EpiC_dep" :       self.piCEdep(event) if leadPion4Mom[3] > 0 else 0,
+#                      "Eproton_dep" :    self.protonEdep(event) if leadProton4Mom[3] > 0 else 0, 
+#                      "EpiC_dep" :       self.piCEdep(event) if leadPion4Mom[3] > 0 else 0,
+                      "Eproton_dep" :    self.protonEdep(event),
+                      "EpiC_dep" :       self.piCEdep(event),
                       "Epi0_dep" :       self.pi0Edep(event),
                       "Etrue" :          self.Etrue(event),
                       "q0" :             self.q0(event),
@@ -400,11 +400,9 @@ class ProtonEdepm20pc(Nominal) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "ProtonEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
-    def protonEdepFV(self, event) :
-        return 0.8*event.ProtonDep_FV
 
-    def protonEdepVeto(self, event) :
-        return 0.8*event.ProtonDep_veto
+    def protonEdep(self, event) :
+        return event.eRecoP*0.8
 
 class PionEdepm20pc(Nominal) :
     
@@ -412,29 +410,21 @@ class PionEdepm20pc(Nominal) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "PionEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
-    def piCEdepFV(self, event) :
-        return 0.8*event.PiCDep_FV
-
-    def piCEdepVeto(self, event) :
-        return 0.8*event.PiCDep_veto
-
+    def piCEdep(self, event) :
+        return (event.eRecoPip + event.eRecoPim)*0.8
+        
 class ProtonEdepm20pcA(Nominal) :
     
     def __init__(self, outFilePath, inFilePath, chargeSel =0 ) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "ProtonEdepm20pcA", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
 
-    def protonEdepFV(self, event) :
-        if event.EKinNeutron_True >  0. :
-            return 0.8*event.ProtonDep_FV
+    def protonEdep(self, event) :
+        if event.eN > 0. :
+            return event.eRecoP*0.8
         else :
-            return event.ProtonDep_FV
+            return event.eRecoP
 
-    def protonEdepVeto(self, event) :
-        if event.EKinNeutron_True > 0. :
-            return 0.8*event.ProtonDep_veto
-        else :
-            return event.ProtonDep_veto
 
 class NominalTV(Nominal) :
 
