@@ -1,7 +1,7 @@
 from random import random
 from abc import ABCMeta, abstractmethod, abstractproperty
 import pandas as pd
-from ROOT import TFile, TChain, TH2F
+from ROOT import TFile, TChain, TH2F, TTree
 import cPickle as pickle
 import os
 from hep_ml.reweight import GBReweighter
@@ -9,6 +9,7 @@ from corner import corner
 import matplotlib.pyplot as plt
 import numpy as np
 from root_numpy import array2root
+from array import array
 
 # Is this the most appropriate place for this? Maybe not...
 GenieCodeDict = { 1 : "QE",
@@ -47,7 +48,7 @@ class Sample(object) :
         pass
     
     def dataframe(self) :
-        EDeps = TChain("EDeps")
+        EDeps = TChain("caf")
         EDeps.Add(self.inFilePath)
 
         df = pd.DataFrame( [ self.variables(event)
@@ -55,10 +56,11 @@ class Sample(object) :
                              if self.selection(event) ])
         del EDeps
         
-        if (self.trainFrac == 0.0) or (self.trainFrac == 1.0) :
-            return df
+        if (self.trainFrac == 0.0) :
+            return df.iloc[:1], df 
+        elif (self.trainFrac == 1.0) :
+            return df, df.iloc[:1]
         else :
-
             splitIndex = int( len(df) * self.trainFrac)
             print splitIndex, len(df), self.trainFrac
             #      Training set             Testing set
@@ -143,7 +145,7 @@ class Sample(object) :
         originDF = originDF[self.observables.keys()]
         targetDF = targetDF[targetSample.observables.keys()]
 
-        reweighter = GBReweighter(n_estimators=200,
+        reweighter = GBReweighter(n_estimators=1000,
                                   learning_rate=.1,
                                   max_depth=3,
                                   min_samples_leaf=1000,
@@ -294,13 +296,17 @@ class Sample(object) :
         weights = []
         for index, row in df.iterrows() :
 
-            xedges = binnedWeights[varPair][row["GENIEIntMode"]]["xedges"]
-            yedges = binnedWeights[varPair][row["GENIEIntMode"]]["yedges"]
+            if row["GENIEIntMode"] in binnedWeights[varPair].keys() :
 
-            xBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][0]], xedges)
-            yBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][1]], yedges)
+                xedges = binnedWeights[varPair][row["GENIEIntMode"]]["xedges"]
+                yedges = binnedWeights[varPair][row["GENIEIntMode"]]["yedges"]
 
-            weights += [ binnedWeights[varPair][row["GENIEIntMode"]]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1. ]
+                xBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][0]], xedges)
+                yBin = np.digitize(row[self.trueVarPairs[varPair]["vars"][1]], yedges)
+
+                weights += [ binnedWeights[varPair][row["GENIEIntMode"]]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1. ]
+            else :
+                weights += [ 1.0 ]
 
         return weights
 
@@ -313,11 +319,11 @@ class Sample(object) :
             
         weights = []
         for index, row in df.iterrows() :
-            if ( row[ self.trueVarPairs[varPair]["vars"][0] ] > self.trueVarPairs[varPair]["range"][0][0] and 
-                 row[ self.trueVarPairs[varPair]["vars"][0] ] < self.trueVarPairs[varPair]["range"][0][1] and
-                 row[ self.trueVarPairs[varPair]["vars"][1] ] > self.trueVarPairs[varPair]["range"][1][0] and 
-                 row[ self.trueVarPairs[varPair]["vars"][1] ] < self.trueVarPairs[varPair]["range"][1][1] ) :
-                 
+            if (row[ self.trueVarPairs[varPair]["vars"][0] ] > self.trueVarPairs[varPair]["range"][0][0] and 
+                row[ self.trueVarPairs[varPair]["vars"][0] ] < self.trueVarPairs[varPair]["range"][0][1] and
+                row[ self.trueVarPairs[varPair]["vars"][1] ] > self.trueVarPairs[varPair]["range"][1][0] and 
+                row[ self.trueVarPairs[varPair]["vars"][1] ] < self.trueVarPairs[varPair]["range"][1][1] and 
+                row["GENIEIntMode"] in rootHistos.keys() ) : 
                 weights += [ rootHistos[row["GENIEIntMode"]].Interpolate(row[ self.trueVarPairs[varPair]["vars"][0] ], row[ self.trueVarPairs[varPair]["vars"][1] ] ) ]
             else :
                 weights += [ 1.0 ]
@@ -329,33 +335,64 @@ class Sample(object) :
     def produceFriendTrees(filePath, nuModeSample, antinuModeSample, isNominal = False) :
         
         with open(nuModeSample.binnedWeightsPath(), "r") as f :
+            print nuModeSample.binnedWeightsPath()
             binnedWeightsNu = pickle.load(f)
         with open(antinuModeSample.binnedWeightsPath(), "r") as f :
             binnedWeightsAntiNu = pickle.load(f)
+
+        binnedWeightsNuROOT = TFile(nuModeSample.binnedWeightsPathROOT())
+        binnedWeightsAntiNuROOT = TFile(antinuModeSample.binnedWeightsPathROOT())
         
-        EDeps = TChain("EDeps")
+        EDeps = TChain("caf")
         EDeps.Add(filePath)
 
-        df = pd.DataFrame()
+#        df = pd.DataFrame()
+        df = []
+        eventCounter = 0
+
+        # Create ROOT file to store the weights
+        outFname = os.path.splitext(filePath)[0]+'_'+nuModeSample.name+'_weights.root'
+        outFile = TFile(outFname, "RECREATE")
+
+        # Declare TTree to store weights
+        outTree = TTree('rw_'+nuModeSample.name, "Fake data weights")
+        treeVars = {}
+        for schemeName, schemeVars in nuModeSample.trueVarPairs.iteritems() :
+            treeVars[schemeName] = array( 'f', [ 0. ] )
+            treeVars[schemeName+"_ROOT"] = array( 'f', [ 0. ] )
+
+            outTree.Branch(schemeName, treeVars[schemeName], schemeName+"/F")
+            outTree.Branch(schemeName+"_ROOT", treeVars[schemeName+"_ROOT"], schemeName+"_ROOT/F")
+        treeVars["Erec"] = array( 'f', [ 0. ] )
+        treeVars["IsSelected"] = array( 'i', [0] )
+        outTree.Branch("Erec", treeVars["Erec"], "Erec/F")
+        outTree.Branch("IsSelected", treeVars["IsSelected"], "IsSelected/I")
 
         for event in EDeps :
             
             thisEvent = nuModeSample.variables(event)
 
-            weights = {}
+#            weights = {}
             
             binnedWeights = None
+            binnedWeightsROOT = None
 
             thisSample = nuModeSample
-            if nuModeSample.selection(event) :
+#            if nuModeSample.selection(event) :
+            if event.isCC and (np.sign(event.LepPDG) > 0) :
+#                print "Got nu event"
                 # It's a nu event!
                 if not isNominal :
                     binnedWeights = binnedWeightsNu
+                    binnedWeightsROOT = binnedWeightsNuROOT
                 thisSample = nuModeSample
-            elif antinuModeSample.selection(event) :
+#            elif antinuModeSample.selection(event) :
+            elif event.isCC and (np.sign(event.LepPDG) < 0) :
+#                print "Got antinu event"
                 # It's an antinu event:
                 if not isNominal :
-                    binnedWeights =binnedWeightsAntiNu
+                    binnedWeights = binnedWeightsAntiNu
+                    binnedWeightsROOT = binnedWeightsAntiNuROOT
                 thisSample = antinuModeSample
             else : 
                 pass
@@ -363,27 +400,61 @@ class Sample(object) :
             eventDF = thisSample.variables(event)
 
             for schemeName, schemeVars in nuModeSample.trueVarPairs.iteritems() :
-                if binnedWeights != None :
-                    xedges = binnedWeights[schemeName][event.GENIEInteractionTopology]["xedges"]
-                    yedges = binnedWeights[schemeName][event.GENIEInteractionTopology]["yedges"]
+                if binnedWeights != None and event.mode in binnedWeights[schemeName].keys() :
+                    xedges = binnedWeights[schemeName][event.mode]["xedges"]
+                    yedges = binnedWeights[schemeName][event.mode]["yedges"]
                     
                     xBin = np.digitize(eventDF[thisSample.trueVarPairs[schemeName]["vars"][0]], xedges)
                     yBin = np.digitize(eventDF[thisSample.trueVarPairs[schemeName]["vars"][1]], yedges)
                     
-                    weights[schemeName] = [binnedWeights[schemeName][event.GENIEInteractionTopology]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.]
+#                    weights[schemeName] = [binnedWeights[schemeName][event.mode]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.]
+                    treeVars[schemeName][0] = binnedWeights[schemeName][event.mode]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.
                 else :
-                    weights[schemeName] = [1.]
+#                    weights[schemeName] = [1.]
+                    treeVars[schemeName][0] = 1.
+                # ROOT histogram weights
+                histName = schemeName+"_"+str(event.mode)
+                if (binnedWeightsROOT != None and binnedWeightsROOT.GetListOfKeys().Contains(histName) and 
+                    eventDF[ thisSample.trueVarPairs[schemeName]["vars"][0] ] > thisSample.trueVarPairs[schemeName]["range"][0][0] and 
+                    eventDF[ thisSample.trueVarPairs[schemeName]["vars"][0] ] < thisSample.trueVarPairs[schemeName]["range"][0][1] and
+                    eventDF[ thisSample.trueVarPairs[schemeName]["vars"][1] ] > thisSample.trueVarPairs[schemeName]["range"][1][0] and 
+                    eventDF[ thisSample.trueVarPairs[schemeName]["vars"][1] ] < thisSample.trueVarPairs[schemeName]["range"][1][1] ) :
+#                    weights[schemeName+"_ROOT"] = [ binnedWeightsROOT.Get(histName).Interpolate(eventDF[thisSample.trueVarPairs[schemeName]["vars"][0]], eventDF[thisSample.trueVarPairs[schemeName]["vars"][1]]) ]
+                    treeVars[schemeName+"_ROOT"][0] =  binnedWeightsROOT.Get(histName).Interpolate(eventDF[thisSample.trueVarPairs[schemeName]["vars"][0]], eventDF[thisSample.trueVarPairs[schemeName]["vars"][1]]) 
+                else : 
+#                    weights[schemeName+"_ROOT"] = [1.]
+                    treeVars[schemeName+"_ROOT"][0] = 1.
 
             # Not really a weight, but will be useful
 
-            weights["Erec"] = [eventDF["Erec"]]
+#            weights["Erec"] = [eventDF["Erec"]]
+            treeVars["Erec"][0] = eventDF["Erec"]
             
-            weights["IsSelected"] = [ not (binnedWeights == None) ]
+            if binnedWeights == None : 
+                treeVars["IsSelected"][0] = 0
+            else :
+                treeVars["IsSelected"][0] = 1 
+#            weights["IsSelected"] = [ not (binnedWeights == None) ]
 
-            df = df.append(pd.DataFrame(weights))
-            
-        df.fillna(1.)
+#            df.append(pd.DataFrame(weights))
+                
+            # Remove pesky nans
+            for key, value in treeVars.iteritems() :
+                if np.isnan(value[0]) :
+                    treeVars[key][0] = 1.
 
-        outFname = os.path.splitext(filePath)[0]+'_'+nuModeSample.name+'_weights.root'
+            outTree.Fill()
 
-        array2root(arr = df.to_records(index = False), filename = outFname, treename = 'rw_'+nuModeSample.name, mode = 'recreate')
+            if not eventCounter%1000 :
+                print eventCounter
+            eventCounter += 1
+
+        outTree.Write()
+        outFile.Close()
+#        df = pd.concat(df)
+
+#        df.fillna(1.)
+
+#        outFname = os.path.splitext(filePath)[0]+'_'+nuModeSample.name+'_weights.root'
+
+#        array2root(arr = df.to_records(index = False), filename = outFname, treename = 'rw_'+nuModeSample.name, mode = 'recreate')

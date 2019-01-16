@@ -43,7 +43,7 @@ class Nominal(Sample) :
         return 0
 
     def neutronEdep(self, event) :
-        return eRecoN
+        return event.eRecoN
 
     def piCEdepFV(self, event) :
         return 0
@@ -73,7 +73,7 @@ class Nominal(Sample) :
         return event.eRecoOther
     
     def nonLepDepVeto(self, event) :
-        return event.Ehad_veto
+        return event.Ehad_veto/1000. # Convert from MeV to GeV!
 
     def nonLepDepFV(self, event) :
         return 0
@@ -91,10 +91,10 @@ class Nominal(Sample) :
         return event.Y*event.Ev
 
     def q3(self, event) :
-        return (-event.Q2 - self.q0(event))**0.5
+        return (event.Q2 + self.q0(event)**2)**0.5
 
     def w(self, event) :
-        event.W
+        return event.W
 
     def Q2(self, event) :
         return event.Q2
@@ -115,7 +115,7 @@ class Nominal(Sample) :
         return acos(event.LepMomZ/( (event.LepMomX**2 +event.LepMomY**2 +event.LepMomZ**2)**0.5 ) )
 
     def leading4Mom(self, event, pdgCode) :
-        return 0 # NOT implemented in CAFs
+        return 0, 0# NOT implemented in CAFs
         maxMom = 0
         max4Mom = [0, 0, 0, 0]
         nAboveThr = 0
@@ -165,24 +165,62 @@ class Nominal(Sample) :
             return acos(pion4mom[3] / ( sum( [ pion4mom[i]**2 for i in range(0, 3) ] )**0.5 ) )
         else :
             return 0
-
-    def selection(self, event) :
-        isSelected = True
-
-        if not event.isCC :
-            isSelected = False
-            return isSelected
-        if self.nonLepDepVeto(event) > 0.05 :
-            isSelected = False
-            return isSelected
-#        if event.stop != 0 :
+    
+#    def selection(self, event) :
+#        isSelected = True
+#
+#        if not event.isCC :
 #            isSelected = False
 #            return isSelected
+#        if self.nonLepDepVeto(event) > 0.05 :
+#            isSelected = False
+#            return isSelected
+##        if event.stop != 0 :
+##            isSelected = False
+##            return isSelected
+#        if self.chargeSel != 0 :
+#            if np.sign(event.LepPDG) != np.sign(self.chargeSel) :
+#                isSelected = False
+#                return isSelected
+#            
+#        return isSelected
+
+# "Official ND selection as of Jan 10 2019
+    def selection (self, event) :
+        isSelected = True
+
         if self.chargeSel != 0 :
-            if np.sign(event.LepPDG) != np.sign(self.chargeSel) :
+            if np.sign(event.reco_q) != np.sign(self.chargeSel) :
                 isSelected = False
                 return isSelected
             
+            # Select true charge for training
+            if -1 * np.sign(event.LepPDG) != np.sign(self.chargeSel) :
+                isSelected = False
+                return isSelected
+
+        # Select true CC for training
+        if event.isCC != 1:
+            isSelected = False
+            return isSelected
+        
+        # Select true mu for training
+        if np.abs(event.LepPDG) != 13 :
+            isSelected = False
+            return isSelected
+            
+        if event.reco_numu != 1 :
+            isSelected = False
+            return isSelected
+        
+        if event.muon_exit != 0 :
+            isSelected = False
+            return isSelected
+        
+        if event.Ehad_veto >= 30 :
+            isSelected = False
+            return isSelected
+
         return isSelected
 
     def transverseVector(self, inp, planarNormal) :
@@ -363,10 +401,10 @@ class Nominal(Sample) :
         dalphat = 0
         dphit = 0
         dptt = 0
-        if event.IsCC and nPionAboveTHR == 0 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
-            dpt, dalphat, dphit = self.singleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom)
-        elif event.IsCC and nPionAboveTHR == 1 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
-            dptt = self.doubleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom, leadPion4Mom = leadPion4Mom)
+#        if event.IsCC and nPionAboveTHR == 0 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
+#            dpt, dalphat, dphit = self.singleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom)
+#        elif event.IsCC and nPionAboveTHR == 1 and event.NPi0 == 0 and nProtonAboveTHR == 1 :
+#            dptt = self.doubleTransverseKinematics(event = event, leadProton4Mom =  leadProton4Mom, leadPion4Mom = leadPion4Mom)
 
         variables = { "Erec" :           self.Erec(event),
                       "Elep_true" :      self.leptonEnergy(event),
@@ -575,3 +613,69 @@ class ProtonEdepm20pcATV_Neutron(NominalTV_Neutron) :
             return 0.8*event.ProtonDep_veto
         else :
             return event.ProtonDep_veto
+
+
+class Nominal_FD(Nominal) :
+        
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "Nominal_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
+    
+    def protonEdep(self, event) :
+        return event.eDepP
+    
+    def neutronEdep(self, event) :
+        return event.eDepN
+
+    def piCEdep(self, event) :
+        return event.eDepPip + event.eDepPim
+
+    def pi0Edep(self, event) :
+        return event.eDepPi0
+
+    def otherEdep(self, event) :
+        return event.eDepOther
+    
+    def nonLepDepVeto(self, event) :
+        return 0.
+    
+    def variables(self, event) :
+
+        variables = { "Erec" :           self.Erec(event),
+                      "Elep_true" :      self.leptonEnergy(event),
+                      "Eproton_dep" :    self.protonEdep(event),
+                      "EpiC_dep" :       self.piCEdep(event),
+                      "Epi0_dep" :       self.pi0Edep(event),
+                      "Etrue" :          self.Etrue(event),
+                      "q0" :             self.q0(event),
+                      "q3" :             self.q3(event),
+                      "w" :              self.w(event),
+                      "Q2" :             self.Q2(event),
+                      "GENIEIntMode" :   self.GENIEIntMode(event),
+                      "EKproton_True" :  self.protonEKinTrue(event),
+                      "EKneutron" :      self.neutronEKin(event),
+        }
+
+        return variables
+
+    def selection (self, event) :
+        isSelected = True
+
+        if event.cvnnumu <= 0.5 :
+            isSelected = False
+            return isSelected
+        
+        if event.cvnnue >= 0.85 :
+            isSelected = False
+            return isSelected
+        return isSelected
+
+class ProtonEdepm20pc_FD(Nominal_FD) :
+    
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pc_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
+
+
+    def protonEdep(self, event) :
+        return event.eDepP*0.8
