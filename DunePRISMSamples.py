@@ -679,3 +679,45 @@ class ProtonEdepm20pc_FD(Nominal_FD) :
 
     def protonEdep(self, event) :
         return event.eDepP*0.8
+
+class Nominal_NoNeutron(Nominal) :
+        
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "Nominal_NoNeutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        
+    def nonLepDep(self, event) :
+        return self.protonEdep(event) + self.piCEdep(event) + self.pi0Edep(event) + self.otherEdep(event)
+
+        
+
+class ProtonEdepm20pc_NoNeutron(ProtonEdepm20pc) :
+    
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pc_NoNeutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+
+    def nonLepDep(self, event) :
+        return self.protonEdep(event) + self.piCEdep(event) + self.pi0Edep(event) + self.otherEdep(event)
+
+class Nominal_NoNeutron_FD(Nominal_FD) :
+        
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "Nominal_NoNeutron_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
+        
+    def nonLepDep(self, event) :
+        return self.protonEdep(event) + self.piCEdep(event) + self.pi0Edep(event) + self.otherEdep(event)
+
+        
+
+class ProtonEdepm20pc_NoNeutron_FD(ProtonEdepm20pc_FD) :
+    
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+        self.chargeSel = chargeSel
+        super(Nominal, self).__init__(name = "ProtonEdepm20pc_NoNeutron_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
+
+    def nonLepDep(self, event) :
+        return self.protonEdep(event) + self.piCEdep(event) + self.pi0Edep(event) + self.otherEdep(event)
+
+

@@ -49,6 +49,23 @@ GenieCodeDict = {
     13 : "GlashowRES",
     14 : "IMDAnnihilation"}
 
+SimbToGenieDict = {
+    -1 : 0,   # Unknown
+     0 : 1,   # QE
+     1 : 4,   # RES
+     2 : 3,   # DIS
+     3 : 5,   # COH
+     4 : 11,  # COHElastic
+     5 : 7,   # Nu+e
+     6 : 14,  # IMDAnnihilation
+     7 : 12,  # IBD
+     8 : 13,  # GlashowRES
+     9 : 9,   # AMNuGamma
+     10 : 10, # MEC
+     11 : 6,  # Diffractive
+     12 : 0,  # "kEM"
+     13 : 0}  # "kWeakMix"
+
 class Sample(object) :
     
     __metaclass__ = ABCMeta
@@ -361,7 +378,7 @@ class Sample(object) :
         return weights
 
     @staticmethod
-    def produceFriendTrees(filePath, nuModeSample, antinuModeSample, isNominal = False) :
+    def produceFriendTrees(filePath, nuModeSample, antinuModeSample, isNominal = False, isFD = False) :
         
         with open(nuModeSample.binnedWeightsPath(), "r") as f :
             print nuModeSample.binnedWeightsPath()
@@ -428,21 +445,26 @@ class Sample(object) :
 
             eventDF = thisSample.variables(event)
 
+            mode = event.mode
+            if isFD :
+                mode = SimbToGenieDict(mode)
+
+
             for schemeName, schemeVars in nuModeSample.trueVarPairs.iteritems() :
-                if binnedWeights != None and event.mode in binnedWeights[schemeName].keys() :
-                    xedges = binnedWeights[schemeName][event.mode]["xedges"]
-                    yedges = binnedWeights[schemeName][event.mode]["yedges"]
+                if binnedWeights != None and mode in binnedWeights[schemeName].keys() :
+                    xedges = binnedWeights[schemeName][mode]["xedges"]
+                    yedges = binnedWeights[schemeName][mode]["yedges"]
                     
                     xBin = np.digitize(eventDF[thisSample.trueVarPairs[schemeName]["vars"][0]], xedges)
                     yBin = np.digitize(eventDF[thisSample.trueVarPairs[schemeName]["vars"][1]], yedges)
                     
-#                    weights[schemeName] = [binnedWeights[schemeName][event.mode]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.]
-                    treeVars[schemeName][0] = binnedWeights[schemeName][event.mode]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.
+#                    weights[schemeName] = [binnedWeights[schemeName][mode]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.]
+                    treeVars[schemeName][0] = binnedWeights[schemeName][mode]["histogram"][xBin-1][yBin-1] if xBin < len(xedges) and yBin < len(yedges) else 1.
                 else :
 #                    weights[schemeName] = [1.]
                     treeVars[schemeName][0] = 1.
                 # ROOT histogram weights
-                histName = schemeName+"_"+str(event.mode)
+                histName = schemeName+"_"+str(mode)
                 if (binnedWeightsROOT != None and binnedWeightsROOT.GetListOfKeys().Contains(histName) and 
                     eventDF[ thisSample.trueVarPairs[schemeName]["vars"][0] ] > thisSample.trueVarPairs[schemeName]["range"][0][0] and 
                     eventDF[ thisSample.trueVarPairs[schemeName]["vars"][0] ] < thisSample.trueVarPairs[schemeName]["range"][0][1] and

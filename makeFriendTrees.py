@@ -34,12 +34,12 @@ fakeDataSet = 0
 #produceFriendTrees(filePath, nuModeSample, antinuModeSample, isNominal = False) 
 processesPickle = []
 
-#for fakeDataSet in range(0, len(samplesOA_FHC) ) :
-#    processesPickle.append( Process( target = MagicRWSample.Sample.produceFriendTrees, args = ("/dune/data/users/cvilela/CAFs/mcc11_v3/ND_FHC_CAF.root", samplesOA_FHC[fakeDataSet], samplesOA_RHC[fakeDataSet],) ) )
-#    processesPickle.append( Process( target = MagicRWSample.Sample.produceFriendTrees, args = ("/dune/data/users/cvilela/CAFs/mcc11_v3/ND_RHC_CAF.root", samplesOA_FHC[fakeDataSet], samplesOA_RHC[fakeDataSet],) ) )
+for fakeDataSet in range(0, len(samplesOA_FHC) ) :
+    processesPickle.append( Process( target = MagicRWSample.Sample.produceFriendTrees, args = ("/dune/data/users/cvilela/CAFs/mcc11_v3/ND_FHC_CAF.root", samplesOA_FHC[fakeDataSet], samplesOA_RHC[fakeDataSet],) ) )
+    processesPickle.append( Process( target = MagicRWSample.Sample.produceFriendTrees, args = ("/dune/data/users/cvilela/CAFs/mcc11_v3/ND_RHC_CAF.root", samplesOA_FHC[fakeDataSet], samplesOA_RHC[fakeDataSet],) ) )
 
 
-processesPickle.append( Process( target = MagicRWSample.Sample.produceFriendTrees, args = (FD_FHC_FilePath, samplesOA_FHC[0], samplesOA_RHC[0],) ) )
+processesPickle.append( Process( target = MagicRWSample.Sample.produceFriendTrees, args = (FD_FHC_FilePath, samplesOA_FHC[0], samplesOA_RHC[0], False, True) ) )
 
 
 for p in processesPickle :

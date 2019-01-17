@@ -42,8 +42,10 @@ RHC_outFilePath = "/dune/data/users/cvilela/MagicRW/RHC/"
 # BELOW "chargeSel" means sign of the PDG code, so + is particle, and - antiparticle - selecting the outgoing muon.
 samplesOA_FHC = [ Nominal(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePath, chargeSel=-1),
                   ProtonEdepm20pc( inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePath, chargeSel=-1),
-                  PionEdepm20pc(   inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePath, chargeSel=-1),
-                  ProtonEdepm20pcA(inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePath, chargeSel=-1) ]
+                  Nominal_NoNeutron(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePath, chargeSel=-1),
+                  ProtonEdepm20pc_NoNeutron( inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePath, chargeSel=-1)]
+#                  PionEdepm20pc(   inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePath, chargeSel=-1),
+#                  ProtonEdepm20pcA(inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePath, chargeSel=-1) ]
 
 #samplesOA_TV_FHC = [NominalTV(         inFilePath = FHC_nominalFilePath, outFilePath = FHC_outFilePathTV, chargeSel=+1), 
 #                    ProtonEdepm20pcTV( inFilePath = FHC_fakeFilePath,    outFilePath = FHC_outFilePathTV, chargeSel=+1),
@@ -57,8 +59,10 @@ samplesOA_FHC = [ Nominal(         inFilePath = FHC_nominalFilePath, outFilePath
 
 samplesOA_RHC = [Nominal(         inFilePath = RHC_nominalFilePath, outFilePath = RHC_outFilePath, chargeSel=+1), 
                  ProtonEdepm20pc( inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePath, chargeSel=+1),
-                 PionEdepm20pc(   inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePath, chargeSel=+1),
-                 ProtonEdepm20pcA(inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePath, chargeSel=+1)]
+                 Nominal_NoNeutron(         inFilePath = RHC_nominalFilePath, outFilePath = RHC_outFilePath, chargeSel=+1), 
+                 ProtonEdepm20pc_NoNeutron( inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePath, chargeSel=+1)]
+#                 PionEdepm20pc(   inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePath, chargeSel=+1),
+#                 ProtonEdepm20pcA(inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePath, chargeSel=+1)]
 
 #samplesOA_TV_RHC = [ NominalTV(         inFilePath = RHC_nominalFilePath, outFilePath = RHC_outFilePathTV, chargeSel=-1), 
 #                     ProtonEdepm20pcTV( inFilePath = RHC_fakeFilePath,    outFilePath = RHC_outFilePathTV, chargeSel=-1),
@@ -74,7 +78,9 @@ samplesOA_RHC = [Nominal(         inFilePath = RHC_nominalFilePath, outFilePath 
 #samples = [ samplesNeutron_TV_FHC, samplesNeutron_TV_FHC ]
 
 samplesFD_FHC = [ Nominal_FD(         inFilePath = FD_FHC_nominalFilePath, outFilePath = FD_FHC_outFilePath, chargeSel = 0), 
-                  ProtonEdepm20pc_FD( inFilePath = FD_FHC_fakeFilePath,    outFilePath = FD_FHC_outFilePath, chargeSel = 0) ]
+                  ProtonEdepm20pc_FD( inFilePath = FD_FHC_fakeFilePath,    outFilePath = FD_FHC_outFilePath, chargeSel = 0),
+                  Nominal_NoNeutron_FD(         inFilePath = FD_FHC_nominalFilePath, outFilePath = FD_FHC_outFilePath, chargeSel = 0), 
+                  ProtonEdepm20pc_NoNeutron_FD( inFilePath = FD_FHC_fakeFilePath,    outFilePath = FD_FHC_outFilePath, chargeSel = 0) ]
 
 samples = [  samplesOA_FHC ]
 #samples = [  samplesOA_RHC ]
