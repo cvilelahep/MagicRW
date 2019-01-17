@@ -14,14 +14,14 @@ plot = True
 plotBinned = True
 plotBinnedROOT = True
 
-#pickle = False
+pickle = False
 train = False
-produceBinned = False
-produceROOT = False
+#produceBinned = False
+#produceROOT = False
 
-plot = False
-plotBinned = False
-plotBinnedROOT = False
+#plot = False
+#plotBinned = False
+#plotBinnedROOT = False
 
 FHC_nominalFilePath = "/dune/data/users/cvilela/CAFs/mcc11_v3/ND_FHC_CAF_nom.root"
 FHC_fakeFilePath = "/dune/data/users/cvilela/CAFs/mcc11_v3/ND_FHC_CAF_fake.root"
@@ -76,10 +76,10 @@ samplesOA_RHC = [Nominal(         inFilePath = RHC_nominalFilePath, outFilePath 
 samplesFD_FHC = [ Nominal_FD(         inFilePath = FD_FHC_nominalFilePath, outFilePath = FD_FHC_outFilePath, chargeSel = 0), 
                   ProtonEdepm20pc_FD( inFilePath = FD_FHC_fakeFilePath,    outFilePath = FD_FHC_outFilePath, chargeSel = 0) ]
 
-#samples = [  samplesOA_FHC ]
+samples = [  samplesOA_FHC ]
 #samples = [  samplesOA_RHC ]
 
-samples = [ samplesFD_FHC ]
+#samples = [ samplesFD_FHC ]
 
 #samples = [  samplesOA_FHC, samplesOA_RHC ] # Doesn't seem to be working. Run one at a time
 

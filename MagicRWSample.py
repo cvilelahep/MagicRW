@@ -12,13 +12,42 @@ from root_numpy import array2root
 from array import array
 
 # Is this the most appropriate place for this? Maybe not...
-GenieCodeDict = { 1 : "QE",
-                  2 : "MEC/2p2h",
-                  3 : "RES",
-                  4 : "DIS",
-                  5 : "COH",
-                  6 : "nu-e elastic",
-                  7 : "IMD" }
+# GENIE MODE ENUM, from:
+# https://github.com/GENIE-MC/Generator/blob/R-2_12_10/src/Interaction/ScatteringType.h
+# retrieved Jan 17
+
+#  kScNull = 0,
+#  kScQuasiElastic,
+#  kScSingleKaon,
+#  kScDeepInelastic,
+#  kScResonant,
+#  kScCoherent,
+#  kScDiffractive,
+#  kScNuElectronElastic,
+#  kScInverseMuDecay,
+#  kScAMNuGamma,
+#  kScMEC,
+#  kScCoherentElas,
+#  kScInverseBetaDecay,
+#  kScGlashowResonance,
+#  kScIMDAnnihilation
+
+GenieCodeDict = { 
+    0 : "Unknown",
+    1 : "QE",
+    2 : "SingleKaon",
+    3 : "DIS",
+    4 : "RES",
+    5 : "COH",
+    6 : "Diffractive",
+    7 : "NuElectronElastic",
+    8 : "InverseMuonDecay",
+    9 : "AMNuGamma",
+    10 : "MEV",
+    11 : "COHElastic",
+    12 : "IBD",
+    13 : "GlashowRES",
+    14 : "IMDAnnihilation"}
 
 class Sample(object) :
     
