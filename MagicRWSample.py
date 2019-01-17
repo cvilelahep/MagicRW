@@ -43,7 +43,7 @@ GenieCodeDict = {
     7 : "NuElectronElastic",
     8 : "InverseMuonDecay",
     9 : "AMNuGamma",
-    10 : "MEV",
+    10 : "MEC",
     11 : "COHElastic",
     12 : "IBD",
     13 : "GlashowRES",
