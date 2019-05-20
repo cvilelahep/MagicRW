@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from root_numpy import array2root
 from array import array
+import xgboost as xgb
+
+overallWeight = 1.0 # HARDCODED! BAD! FIX!!
 
 # Is this the most appropriate place for this? Maybe not...
 # GENIE MODE ENUM, from:
@@ -70,11 +73,12 @@ class Sample(object) :
     
     __metaclass__ = ABCMeta
 
-    def __init__(self, name, outFilePath, inFilePath, trainFrac = 0.0):
+    def __init__(self, name, outFilePath, inFilePath, trainFrac = 0.0, numTrees = 20):
         self.name = name
         self.outFilePath = outFilePath
         self.inFilePath = inFilePath
         self.trainFrac = trainFrac
+        self.numTrees = numTrees
         super(Sample, self).__init__()
         
     @abstractmethod
@@ -127,11 +131,17 @@ class Sample(object) :
     def gbrwPath(self) :
         return self.baseDir()+self.name+"_gbrw.p"
 
+    def xgbPath(self) :
+        return self.baseDir()+self.name+".xgb"
+
     def binnedWeightsPath(self) :
         return self.baseDir()+self.name+"_binnedWeights.p"
 
     def binnedWeightsPathROOT(self) :
         return self.baseDir()+self.name+"_binnedWeights.root"
+
+    def trueKinBDTPath(self) :
+        return self.baseDir()+self.name+"_trueKinBDT.xgb"
         
     def pickleData(self) :
         trainSet, testSet = self.dataframe()
@@ -188,16 +198,19 @@ class Sample(object) :
             print 'Target:', targetSample.observables.keys()
             exit(-1)
         
+        originPreWeights = originDF["preweight"]
+        targetPreWeights = targetDF["preweight"]
+
         originDF = originDF[self.observables.keys()]
         targetDF = targetDF[targetSample.observables.keys()]
 
-        reweighter = GBReweighter(n_estimators=1000,
+        reweighter = GBReweighter(n_estimators=200,
                                   learning_rate=.1,
                                   max_depth=3,
                                   min_samples_leaf=1000,
                                   loss_regularization=1.0)
 
-        reweighter.fit(original = originDF, target = targetDF)
+        reweighter.fit(original = originDF, target = targetDF, original_weight = originPreWeights, target_weight = targetPreWeights)
 
         with open(self.gbrwPath(), "wb") as f :
             pickle.dump(reweighter, f)
@@ -220,6 +233,24 @@ class Sample(object) :
             with open(self.gbrwPath(), 'r') as f :
                 reweighter = pickle.load(f)
                 weightsTest  = reweighter.predict_weights(originDFtestObs)
+
+        elif weightScheme == "xgbTrueKin" :
+            bst = xgb.Booster({'nthread': 1})
+            bst.load_model(self.trueKinBDTPath())
+            
+            data = xgb.DMatrix(self.trueKinDF(originDFtest))
+
+            weightsTest = bst.predict(data)
+
+        elif weightScheme == "xgb" :
+            bst = xgb.Booster({'nthread': 1})
+            bst.load_model(self.xgbPath())
+            
+            data = xgb.DMatrix(originDFtestObs)
+
+            weightsTest = bst.predict(data)
+            weightsTest = 1./weightsTest - 1
+
         elif not useROOThistos :
             originDFtestVarPairs = originDFtest[self.trueVarPairs[weightScheme]["vars"] + ["GENIEIntMode"]]
             weightsTest = self.predictBinnedWeights(originDFtestVarPairs,  weightScheme)
@@ -302,7 +333,7 @@ class Sample(object) :
             for iMode, modeName in GenieCodeDict.iteritems() :
                 thisModeDF = originDF[originDF['GENIEIntMode'] == iMode]
                 h1, xedges, yedges = np.histogram2d(x = thisModeDF[schemeVars['vars'][0]], y = thisModeDF[schemeVars['vars'][1]], bins = schemeVars['bins'], range = schemeVars['range'])
-                h2, xedges, yedges = np.histogram2d(x = thisModeDF[schemeVars['vars'][0]], y = thisModeDF[schemeVars['vars'][1]], bins = schemeVars['bins'], range = schemeVars['range'], weights = thisModeDF['weights'])
+                h2, xedges, yedges = np.histogram2d(x = thisModeDF[schemeVars['vars'][0]], y = thisModeDF[schemeVars['vars'][1]], bins = schemeVars['bins'], range = schemeVars['range'], weights = thisModeDF['weights'].apply(lambda x: x*overallWeight))
 
                 h = h2/h1
                 binnedWeights[schemeName][iMode] = {"histogram" : h, "xedges" : xedges, "yedges" : yedges }
@@ -334,6 +365,38 @@ class Sample(object) :
             histo.Write()
         fOut.Close()
             
+
+    def trainTrueKinBDT(self) :
+
+        originDF = self.getTrainDataFrame()
+        
+        originPreWeights = originDF["preweight"]
+
+        with open(self.gbrwPath(), 'r') as f :
+            reweighter = pickle.load(f) # Wrap this?
+
+        weights_to_predict = reweighter.predict_weights(originDF[self.observables.keys()])
+
+        data = xgb.DMatrix(data = self.trueKinDF(originDF), label = weights_to_predict, weight = originPreWeights)
+
+        params = {}
+        params['nthread'] = 1
+        params["tree_method"] = "auto" 
+        params["objective"] = 'reg:linear'
+
+        bst = xgb.train(params = params, dtrain = data,  num_boost_round=1000)
+        
+        for f in [ self.trueKinBDTPath()+'.raw.txt', self.trueKinBDTPath() ] :
+            try:
+                os.remove(f)
+            except OSError:
+                pass
+
+        # dump model
+        bst.dump_model(self.trueKinBDTPath()+'.raw.txt')
+
+        bst.save_model(self.trueKinBDTPath())
+        print "Saved XGBoost model"
 
     def predictBinnedWeights(self, df, varPair) :
         with open(self.binnedWeightsPath(), "r") as f :
@@ -447,7 +510,7 @@ class Sample(object) :
 
             mode = event.mode
             if isFD :
-                mode = SimbToGenieDict(mode)
+                mode = SimbToGenieDict[mode]
 
 
             for schemeName, schemeVars in nuModeSample.trueVarPairs.iteritems() :

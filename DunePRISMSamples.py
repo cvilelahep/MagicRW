@@ -1,10 +1,13 @@
-from MagicRWSample import Sample
+#from MagicRWSample import Sample
+from MagicRWSampleXGB import SampleXGB
 
 import pandas as pd
 
 import numpy as np
 
 from math import acos, pi, cos, sin
+
+import xgboost as xgb
 
 m_proton = 0.93827208
 
@@ -17,15 +20,166 @@ lepton_mom_res = 0.05
 
 angularResolution = 2e-3
 
-class Nominal(Sample) :
+cvWeightNames = ["MaCCQE_cvwgt",                        
+                 "VecFFCCQEshape_cvwgt",                
+                 "MaNCEL_cvwgt",                        
+                 "EtaNCEL_cvwgt",                       
+                 "MaCCRES_cvwgt",                       
+                 "MvCCRES_cvwgt",                       
+                 "MaNCRES_cvwgt",                       
+                 "MvNCRES_cvwgt",                       
+                 "RDecBR1gamma_cvwgt",                  
+                 "RDecBR1eta_cvwgt",                    
+                 "Theta_Delta2Npi_cvwgt",               
+                 "AhtBY_cvwgt",                         
+                 "BhtBY_cvwgt",                         
+                 "CV1uBY_cvwgt",                        
+                 "CV2uBY_cvwgt",                        
+                 "FormZone_cvwgt",                      
+                 "MFP_pi_cvwgt",                        
+                 "FrCEx_pi_cvwgt",                      
+                 "FrElas_pi_cvwgt",                     
+                 "FrInel_pi_cvwgt",                     
+                 "FrAbs_pi_cvwgt",                      
+                 "FrPiProd_pi_cvwgt",                   
+                 "MFP_N_cvwgt",                         
+                 "FrCEx_N_cvwgt",                       
+                 "FrElas_N_cvwgt",                      
+                 "FrInel_N_cvwgt",                      
+                 "FrAbs_N_cvwgt",                       
+                 "FrPiProd_N_cvwgt",                    
+                 "CCQEPauliSupViaKF_cvwgt",             
+                 "Mnv2p2hGaussEnhancement_cvwgt",       
+                 "MKSPP_ReWeight_cvwgt",                
+                 "E2p2h_A_nu_cvwgt",                    
+                 "E2p2h_B_nu_cvwgt",                    
+                 "E2p2h_A_nubar_cvwgt",                 
+                 "E2p2h_B_nubar_cvwgt",                 
+                 "NR_nu_n_CC_2Pi_cvwgt",                
+                 "NR_nu_n_CC_3Pi_cvwgt",                
+                 "NR_nu_p_CC_2Pi_cvwgt",                
+                 "NR_nu_p_CC_3Pi_cvwgt",                
+                 "NR_nu_np_CC_1Pi_cvwgt",               
+                 "NR_nu_n_NC_1Pi_cvwgt",                
+                 "NR_nu_n_NC_2Pi_cvwgt",                
+                 "NR_nu_n_NC_3Pi_cvwgt",                
+                 "NR_nu_p_NC_1Pi_cvwgt",                
+                 "NR_nu_p_NC_2Pi_cvwgt",                
+                 "NR_nu_p_NC_3Pi_cvwgt",                
+                 "NR_nubar_n_CC_1Pi_cvwgt",             
+                 "NR_nubar_n_CC_2Pi_cvwgt",             
+                 "NR_nubar_n_CC_3Pi_cvwgt",             
+                 "NR_nubar_p_CC_1Pi_cvwgt",             
+                 "NR_nubar_p_CC_2Pi_cvwgt",             
+                 "NR_nubar_p_CC_3Pi_cvwgt",             
+                 "NR_nubar_n_NC_1Pi_cvwgt",             
+                 "NR_nubar_n_NC_2Pi_cvwgt",             
+                 "NR_nubar_n_NC_3Pi_cvwgt",             
+                 "NR_nubar_p_NC_1Pi_cvwgt",             
+                 "NR_nubar_p_NC_2Pi_cvwgt",             
+                 "NR_nubar_p_NC_3Pi_cvwgt",             
+                 "BeRPA_A_cvwgt",                       
+                 "BeRPA_B_cvwgt",                       
+                 "BeRPA_D_cvwgt",                       
+                 "BeRPA_E_cvwgt",                       
+                 "C12ToAr40_2p2hScaling_nu_cvwgt",      
+                 "C12ToAr40_2p2hScaling_nubar_cvwgt",   
+                 "nuenuebar_xsec_ratio_cvwgt",          
+                 "nuenumu_xsec_ratio_cvwgt",            
+                 "SPPLowQ2Suppression_cvwgt",           
+                 "FSILikeEAvailSmearing_cvwgt"]
+
+#class Nominal(Sample) :
+class Nominal(SampleXGB) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
 
-        super(Nominal, self).__init__(name = "Nominal", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "Nominal", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
+
+
+    def getPreWeights(self, event) :
+
+        weight = 1
+        
+        for wgtName in cvWeightNames :
+            if event.__getattr__(wgtName) != 0 :
+                weight *= event.__getattr__(wgtName)
+
+#        weight *= event.MaCCQE_cvwgt                        
+#        weight *= event.VecFFCCQEshape_cvwgt                
+#        weight *= event.MaNCEL_cvwgt                        
+#        weight *= event.EtaNCEL_cvwgt                       
+#        weight *= event.MaCCRES_cvwgt                       
+#        weight *= event.MvCCRES_cvwgt                       
+#        weight *= event.MaNCRES_cvwgt                       
+#        weight *= event.MvNCRES_cvwgt                       
+#        weight *= event.RDecBR1gamma_cvwgt                  
+#        weight *= event.RDecBR1eta_cvwgt                    
+#        weight *= event.Theta_Delta2Npi_cvwgt               
+#        weight *= event.AhtBY_cvwgt                         
+#        weight *= event.BhtBY_cvwgt                         
+#        weight *= event.CV1uBY_cvwgt                        
+#        weight *= event.CV2uBY_cvwgt                        
+#        weight *= event.FormZone_cvwgt                      
+#        weight *= event.MFP_pi_cvwgt                        
+#        weight *= event.FrCEx_pi_cvwgt                      
+#        weight *= event.FrElas_pi_cvwgt                     
+#        weight *= event.FrInel_pi_cvwgt                     
+#        weight *= event.FrAbs_pi_cvwgt                      
+#        weight *= event.FrPiProd_pi_cvwgt                   
+#        weight *= event.MFP_N_cvwgt                         
+#        weight *= event.FrCEx_N_cvwgt                       
+#        weight *= event.FrElas_N_cvwgt                      
+#        weight *= event.FrInel_N_cvwgt                      
+#        weight *= event.FrAbs_N_cvwgt                       
+#        weight *= event.FrPiProd_N_cvwgt                    
+#        weight *= event.CCQEPauliSupViaKF_cvwgt             
+#        weight *= event.Mnv2p2hGaussEnhancement_cvwgt       
+#        weight *= event.MKSPP_ReWeight_cvwgt                
+#        weight *= event.E2p2h_A_nu_cvwgt                    
+#        weight *= event.E2p2h_B_nu_cvwgt                    
+#        weight *= event.E2p2h_A_nubar_cvwgt                 
+#        weight *= event.E2p2h_B_nubar_cvwgt                 
+#        weight *= event.NR_nu_n_CC_2Pi_cvwgt                
+#        weight *= event.NR_nu_n_CC_3Pi_cvwgt                
+#        weight *= event.NR_nu_p_CC_2Pi_cvwgt                
+#        weight *= event.NR_nu_p_CC_3Pi_cvwgt                
+#        weight *= event.NR_nu_np_CC_1Pi_cvwgt               
+#        weight *= event.NR_nu_n_NC_1Pi_cvwgt                
+#        weight *= event.NR_nu_n_NC_2Pi_cvwgt                
+#        weight *= event.NR_nu_n_NC_3Pi_cvwgt                
+#        weight *= event.NR_nu_p_NC_1Pi_cvwgt                
+#        weight *= event.NR_nu_p_NC_2Pi_cvwgt                
+#        weight *= event.NR_nu_p_NC_3Pi_cvwgt                
+#        weight *= event.NR_nubar_n_CC_1Pi_cvwgt             
+#        weight *= event.NR_nubar_n_CC_2Pi_cvwgt             
+#        weight *= event.NR_nubar_n_CC_3Pi_cvwgt             
+#        weight *= event.NR_nubar_p_CC_1Pi_cvwgt             
+#        weight *= event.NR_nubar_p_CC_2Pi_cvwgt             
+#        weight *= event.NR_nubar_p_CC_3Pi_cvwgt             
+#        weight *= event.NR_nubar_n_NC_1Pi_cvwgt             
+#        weight *= event.NR_nubar_n_NC_2Pi_cvwgt             
+#        weight *= event.NR_nubar_n_NC_3Pi_cvwgt             
+#        weight *= event.NR_nubar_p_NC_1Pi_cvwgt             
+#        weight *= event.NR_nubar_p_NC_2Pi_cvwgt             
+#        weight *= event.NR_nubar_p_NC_3Pi_cvwgt             
+#        weight *= event.BeRPA_A_cvwgt                       
+#        weight *= event.BeRPA_B_cvwgt                       
+#        weight *= event.BeRPA_D_cvwgt                       
+#        weight *= event.BeRPA_E_cvwgt                       
+#        weight *= event.C12ToAr40_2p2hScaling_nu_cvwgt      
+#        weight *= event.C12ToAr40_2p2hScaling_nubar_cvwgt   
+#        weight *= event.nuenuebar_xsec_ratio_cvwgt          
+#        weight *= event.nuenumu_xsec_ratio_cvwgt            
+#        weight *= event.SPPLowQ2Suppression_cvwgt           
+#        weight *= event.FSILikeEAvailSmearing_cvwgt         
+               
+        return weight
 
     def leptonEnergy(self, event) :
-        return event.LepE
+#        return event.LepE
+        return event.Elep_reco
 
     def protonEdepFV(self, event) :
         return 0
@@ -87,6 +241,9 @@ class Nominal(Sample) :
     def Erec(self, event) :
         return self.nonLepDep(event) + self.leptonEnergy(event) + self.bindingEnergy()
 
+    def recoY(self, event) :
+        return 1 - self.leptonEnergy(event)/self.Erec(event)
+    
     def q0(self, event) :
         return event.Y*event.Ev
 
@@ -166,26 +323,35 @@ class Nominal(Sample) :
         else :
             return 0
     
-#    def selection(self, event) :
-#        isSelected = True
-#
-#        if not event.isCC :
-#            isSelected = False
-#            return isSelected
-#        if self.nonLepDepVeto(event) > 0.05 :
-#            isSelected = False
-#            return isSelected
-##        if event.stop != 0 :
-##            isSelected = False
-##            return isSelected
-#        if self.chargeSel != 0 :
-#            if np.sign(event.LepPDG) != np.sign(self.chargeSel) :
-#                isSelected = False
-#                return isSelected
-#            
-#        return isSelected
+# Fiducial volume cut:
+# https://github.com/DUNE/lblpwgtools/blob/master/code/CAFAna/CAFAna/Cuts/TruthCuts.h
+    def fiducialVolume(self, event) :
+        inDeadRegion = False
+        for i in range(-3,4) :
+            cathode_center = i*102.1
+            if event.vtx_x > cathode_center -0.75 and event.vtx_x < cathode_center + 0.75 :
+                inDeadRegion = True
+            module_boundary = i*102.1 + 51.05
+            if i <= 2 and event.vtx_x > module_boundary - 1.3 and event.vtx_x < module_boundary + 1.3 :
+                inDeadRegion = True
+        for i in range(1, 5) :
+            module_boundary = i*101.8 - 0.6
+            if event.vtx_z > module_boundary -1.7 and event.vtx_z < module_boundary + 1.7 :
+                inDeadRegion = True
 
-# "Official ND selection as of Jan 10 2019
+        if ( abs(event.vtx_x) < 300 and
+             abs(event.vtx_y) < 100 and
+             event.vtx_z > 50 and
+             event.vtx_z < 150 and
+             not inDeadRegion ) :
+            return True
+        else :
+            return False
+
+# Event selection
+# https://github.com/DUNE/lblpwgtools/blob/master/code/CAFAna/CAFAna/Cuts/AnaCuts.h
+# + true numuCC
+# + FV cut as defined above
     def selection (self, event) :
         isSelected = True
 
@@ -209,15 +375,19 @@ class Nominal(Sample) :
             isSelected = False
             return isSelected
             
-        if event.reco_numu != 1 :
+        if event.reco_numu == 0 :
             isSelected = False
             return isSelected
         
-        if event.muon_exit != 0 :
+        if event.muon_contained == 0 and event.muon_tracker == 0 :
             isSelected = False
             return isSelected
         
         if event.Ehad_veto >= 30 :
+            isSelected = False
+            return isSelected
+
+        if not self.fiducialVolume(event) :
             isSelected = False
             return isSelected
 
@@ -380,8 +550,9 @@ class Nominal(Sample) :
                     "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
                     "Eproton_dep"         : { "label" : r'E${_{p}}^{\mathrm{dep}}$ [GeV]',                          "range" : [0., 2.] , "logScale" : True },
                     "EpiC_dep"            : { "label" : r'E${_{\pi^{\pm}}}^{\mathrm{dep}}$ [GeV]',                  "range" : [0., 2.] , "logScale" : True },
-                    "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True }
-    }
+                    "Epi0_dep"            : { "label" : r'E${_{\pi^{0}}}^{\mathrm{dep}}$ [GeV]',                    "range" : [0., 2.] , "logScale" : True },
+                    "Reco_y"              : { "label" : r'y$_{\mathrm{rec}}$',                                      "range" : [0., 1.] , "logScale" : False }
+                    }
                     
     
     # Pairs of true variables for binned reweighting
@@ -427,16 +598,26 @@ class Nominal(Sample) :
                       "dptt"    :        dptt, 
                       "nPionAboveTrackThr" : nPionAboveTHR,
                       "nProtonAboveTrackThr" : nProtonAboveTHR,
-                      "oaBin" :          self.getOAbin(event)
+                      "oaBin" :          self.getOAbin(event),
+                      "Reco_y" :         self.recoY(event),
+                      "preweight" :       self.getPreWeights(event)
         }
 
         return variables
 
+
+    def trueKinDF(self, df) :
+        dfOut = pd.get_dummies(df["GENIEIntMode"], prefix = 'GENIEIntMode')
+        dfOut["Etrue"] = df["Etrue"]
+        dfOut["EKproton_True"] = df["EKproton_True"]
+        dfOut["ytrue"] = 1 - df["Elep_true"]/df["Etrue"]
+        return dfOut       
+
 class ProtonEdepm20pc(Nominal) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
 
     def protonEdep(self, event) :
@@ -444,9 +625,9 @@ class ProtonEdepm20pc(Nominal) :
 
 class PionEdepm20pc(Nominal) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0 ) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20 ) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "PionEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "PionEdepm20pc", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def piCEdep(self, event) :
         return (event.eRecoPip + event.eRecoPim)*0.8
@@ -455,7 +636,7 @@ class ProtonEdepm20pcA(Nominal) :
     
     def __init__(self, outFilePath, inFilePath, chargeSel =0 ) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcA", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcA", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def protonEdep(self, event) :
         if event.eN > 0. :
@@ -466,9 +647,9 @@ class ProtonEdepm20pcA(Nominal) :
 
 class NominalTV(Nominal) :
 
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "NominalTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "NominalTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
                     "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
@@ -485,9 +666,9 @@ class NominalTV(Nominal) :
 
 class ProtonEdepm20pcTV(NominalTV) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def protonEdepFV(self, event) :
         return 0.8*event.ProtonDep_FV
@@ -497,9 +678,9 @@ class ProtonEdepm20pcTV(NominalTV) :
 
 class PionEdepm20pcTV(NominalTV) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "PionEdepm20pcTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "PionEdepm20pcTV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def piCEdepFV(self, event) :
         return 0.8*event.PiCDep_FV
@@ -509,9 +690,9 @@ class PionEdepm20pcTV(NominalTV) :
 
 class ProtonEdepm20pcATV(NominalTV) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def protonEdepFV(self, event) :
         if event.EKinNeutron_True >  0. :
@@ -527,9 +708,9 @@ class ProtonEdepm20pcATV(NominalTV) :
 
 class NominalTV_Neutron(NominalTV) :
 
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "NominalTV_ND_Neutron_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "NominalTV_ND_Neutron_FHC", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     observables = { "Erec"                : { "label" : r'E$_{\mathrm{rec}}$ [GeV]',                                "range" : [0., 6.] , "logScale" : False },
                     "Elep_true"           : { "label" : r'E${_{\ell}}^{\mathrm{true}}$ [GeV]}',                     "range" : [0., 5.] , "logScale" : False },
@@ -574,9 +755,9 @@ class NominalTV_Neutron(NominalTV) :
 
 class ProtonEdepm20pcTV_Neutron(NominalTV_Neutron) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcTV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def protonEdepFV(self, event) :
         return 0.8*event.ProtonDep_FV
@@ -586,9 +767,9 @@ class ProtonEdepm20pcTV_Neutron(NominalTV_Neutron) :
 
 class PionEdepm20pcTV_Neutron(NominalTV_Neutron) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "PionEdepm20pcTV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "PionEdepm20pcTV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def piCEdepFV(self, event) :
         return 0.8*event.PiCDep_FV
@@ -598,9 +779,9 @@ class PionEdepm20pcTV_Neutron(NominalTV_Neutron) :
 
 class ProtonEdepm20pcATV_Neutron(NominalTV_Neutron) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pcATV_Neutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def protonEdepFV(self, event) :
         if event.EKinNeutron_True >  0. :
@@ -617,7 +798,7 @@ class ProtonEdepm20pcATV_Neutron(NominalTV_Neutron) :
 
 class Nominal_FD(Nominal) :
         
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "Nominal_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
     
@@ -672,7 +853,7 @@ class Nominal_FD(Nominal) :
 
 class ProtonEdepm20pc_FD(Nominal_FD) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "ProtonEdepm20pc_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
 
@@ -682,9 +863,9 @@ class ProtonEdepm20pc_FD(Nominal_FD) :
 
 class Nominal_NoNeutron(Nominal) :
         
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "Nominal_NoNeutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "Nominal_NoNeutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
         
     def nonLepDep(self, event) :
         return self.protonEdep(event) + self.piCEdep(event) + self.pi0Edep(event) + self.otherEdep(event)
@@ -693,16 +874,16 @@ class Nominal_NoNeutron(Nominal) :
 
 class ProtonEdepm20pc_NoNeutron(ProtonEdepm20pc) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
-        super(Nominal, self).__init__(name = "ProtonEdepm20pc_NoNeutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75)
+        super(Nominal, self).__init__(name = "ProtonEdepm20pc_NoNeutron", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.75, numTrees = numTrees)
 
     def nonLepDep(self, event) :
         return self.protonEdep(event) + self.piCEdep(event) + self.pi0Edep(event) + self.otherEdep(event)
 
 class Nominal_NoNeutron_FD(Nominal_FD) :
         
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "Nominal_NoNeutron_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
         
@@ -713,7 +894,7 @@ class Nominal_NoNeutron_FD(Nominal_FD) :
 
 class ProtonEdepm20pc_NoNeutron_FD(ProtonEdepm20pc_FD) :
     
-    def __init__(self, outFilePath, inFilePath, chargeSel = 0) :
+    def __init__(self, outFilePath, inFilePath, chargeSel = 0, numTrees = 20) :
         self.chargeSel = chargeSel
         super(Nominal, self).__init__(name = "ProtonEdepm20pc_NoNeutron_FD", outFilePath = outFilePath, inFilePath = inFilePath, trainFrac = 0.)
 
