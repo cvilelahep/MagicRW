@@ -19,16 +19,16 @@ plotBinned = True
 plotBinnedROOT = True
 plotTrueKinBDT = True
 
-pickle = False
-train = False
-produceBinned = False
-produceROOT = False
+#pickle = False
+#train = False
+#produceBinned = False
+#produceROOT = False
 #produceTrueKinBDT = False
 
-plot = False
-plotXGB = False
-plotBinned = False
-plotBinnedROOT = False
+#plot = False
+#plotXGB = False
+#plotBinned = False
+#plotBinnedROOT = False
 #plotTrueKinBDT = False
 
 #FHC_nominalFilePath = "/dune/data/users/cvilela/CAFs/mcc11_v3/ND_FHC_CAF_nom.root"
