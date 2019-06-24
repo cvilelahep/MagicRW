@@ -1,4 +1,3 @@
-import ROOT
 import datetime
 
 import numpy as np
@@ -33,28 +32,28 @@ plotTrueKinBDT = True
 
 #FHC_nominalFilePath = "/dune/data/users/cvilela/CAFs/mcc11_v3/ND_FHC_CAF_nom.root"
 #FHC_fakeFilePath = "/dune/data/users/cvilela/CAFs/mcc11_v3/ND_FHC_CAF_fake.root"
-FHC_nominalFilePath = "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_FHC_FV_*[0-4].root"
-FHC_fakeFilePath =    "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_FHC_FV_*[5-9].root"
-FHC_outFilePath = "/dune/data/users/cvilela/MagicRW/mcc11_v4_FHC_RecoLepE_RecoY_200Trees_ExtraStats/"
+FHC_nominalFilePath = "/storage/shared/cvilela/CAF/mcc11_v4/ND_FHC_FV_*[0-4].root"
+FHC_fakeFilePath =    "/storage/shared/cvilela/CAF/mcc11_v4/ND_FHC_FV_*[5-9].root"
+FHC_outFilePath = "/storage/shared/cvilela/MagicRW/mcc11_v4_FHC_RecoLepE_RecoY_200Trees_ExtraStats/"
 
 FD_FHC_nominalFilePath = "/dune/data/users/marshalc/CAFs/mcc11_v3/FD_FHC_nonswap.root"
 FD_FHC_fakeFilePath = "/dune/data/users/marshalc/CAFs/mcc11_v3/FD_FHC_nonswap.root"
-FD_FHC_outFilePath = "/dune/data/users/cvilela/MagicRW/FHC_FD/"
+FD_FHC_outFilePath = "/storage/shared/cvilela/MagicRW/FHC_FD/"
 #FHC_outFilePathTV = "/gpfs/scratch/crfernandesv/MagicRW/FHC_SamplesTV"
 #FHC_outFilePathTV_Neutron = "/gpfs/scratch/crfernandesv/MagicRW/FHC_SamplesTV_Neutron"
 
 
-#RHC_nominalFilePath = "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_RHC_FV_[0-1][0-9].root"
-#RHC_fakeFilePath =    "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_RHC_FV_[2-3][0-9].root"
-RHC_nominalFilePath = "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_RHC_FV_*[0-4].root"
-RHC_fakeFilePath =    "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_RHC_FV_*[5-9].root"
-#RHC_nominalFilePath = "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_RHC_FV_0[0-4].root"
-#RHC_fakeFilePath =    "/pnfs/dune/persistent/users/LBL_TDR/CAFs/v4/ND_RHC_FV_0[5-9].root"
-RHC_outFilePath = "/dune/data/users/cvilela/MagicRW/mcc11_v4_RHC_RecoLepE_RecoY_200Trees_ExtraStats/"
+#RHC_nominalFilePath = "/storage/shared/cvilela/CAF/mcc11_v4/ND_RHC_FV_[0-1][0-9].root"
+#RHC_fakeFilePath =    "/storage/shared/cvilela/CAF/mcc11_v4/ND_RHC_FV_[2-3][0-9].root"
+RHC_nominalFilePath = "/storage/shared/cvilela/CAF/mcc11_v4/ND_RHC_FV_*[0-4].root"
+RHC_fakeFilePath =    "/storage/shared/cvilela/CAF/mcc11_v4/ND_RHC_FV_*[5-9].root"
+#RHC_nominalFilePath = "/storage/shared/cvilela/CAF/mcc11_v4/ND_RHC_FV_0[0-4].root"
+#RHC_fakeFilePath =    "/storage/shared/cvilela/CAF/mcc11_v4/ND_RHC_FV_0[5-9].root"
+RHC_outFilePath = "/storage/shared/cvilela/MagicRW/mcc11_v4_RHC_RecoLepE_RecoY_200Trees_ExtraStats/"
 
 #RHC_nominalFilePath = "/dune/data/users/cvilela/CAFs/mcc11_v3/ND_RHC_CAF_nom.root"
 #RHC_fakeFilePath = "/dune/data/users/cvilela/CAFs/mcc11_v3/ND_RHC_CAF_fake.root"
-#RHC_outFilePath = "/dune/data/users/cvilela/MagicRW/RHC_RecoLepE_RecoY_200Trees/"
+#RHC_outFilePath = "/storage/shared/cvilela/MagicRW/RHC_RecoLepE_RecoY_200Trees/"
 #RHC_outFilePathTV = "/gpfs/scratch/crfernandesv/MagicRW/RHC_SamplesTV"
 #RHC_outFilePathTV_Neutron = "/gpfs/scratch/crfernandesv/MagicRW/RHC_SamplesTV_Neutron"
 
@@ -101,7 +100,7 @@ samplesFD_FHC = [ Nominal_FD(         inFilePath = FD_FHC_nominalFilePath, outFi
 #                  Nominal_NoNeutron_FD(         inFilePath = FD_FHC_nominalFilePath, outFilePath = FD_FHC_outFilePath, chargeSel = 0), 
 #                  ProtonEdepm20pc_NoNeutron_FD( inFilePath = FD_FHC_fakeFilePath,    outFilePath = FD_FHC_outFilePath, chargeSel = 0) ]
 
-#samples = [  samplesOA_RHC ]
+samples = [  samplesOA_RHC ]
 samples = [  samplesOA_FHC ]
 
 #samples = [  samplesOA_FHC, samplesOA_RHC ] # Doesn't seem to be working. Run one at a time
